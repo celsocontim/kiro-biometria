@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+  margin: 0;
+  padding: 0;
+  /* Prevent scrolling on mobile */
+  overflow: hidden;
+  /* Ensure proper touch handling */
+  touch-action: manipulation;
+}
+
+/* Responsive layout utilities */
+@layer utilities {
+  /* Ensure minimum touch target sizes (WCAG 2.1 Level AA) */
+  /* Requirement 3.5: Minimum touch target sizes (44x44px) */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  /* Orientation-specific styles */
+  /* Requirement 3.5: Handle orientation changes */
+  @media (orientation: landscape) {
+    .landscape-adjust {
+      max-height: 100vh;
+    }
+  }
+  
+  @media (orientation: portrait) {
+    .portrait-adjust {
+      max-width: 100vw;
+    }
+  }
+  
+  /* Mobile-specific utilities (< 768px) */
+  /* Requirement 3.2: Mobile-optimized styling */
+  @media (max-width: 767px) {
+    .mobile-full-screen {
+      width: 100vw;
+      height: 100vh;
+    }
+    
+    .mobile-touch-spacing {
+      padding: 8px;
+    }
+  }
+  
+  /* Tablet-specific utilities (768px - 1024px) */
+  /* Requirement 3.3: Tablet-optimized styling */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .tablet-centered {
+      margin-left: auto;
+      margin-right: auto;
+      max-width: 80%;
+    }
+  }
+  
+  /* Desktop-specific utilities (> 1024px) */
+  /* Requirement 3.4: Desktop-optimized styling */
+  @media (min-width: 1025px) {
+    .desktop-constrained {
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+}
+
+@keyframes scale-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s ease-out;
+}
+
+@keyframes slide-down {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out;
+}
