@@ -38,7 +38,7 @@ export class APIClient {
    * Nenhuma configuração adicional necessária no lado do cliente.
    */
   constructor(backendUrl?: string, timeout: number = 30000, maxRetries: number = 2) {
-    // Use environment variable or provided URL
+    // Usa variável de ambiente ou URL fornecida
     this.backendUrl = backendUrl || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     this.timeout = timeout;
     this.maxRetries = maxRetries;
@@ -59,18 +59,18 @@ export class APIClient {
   async submitCapture(imageData: string, userId: string): Promise<CaptureResponse> {
     let lastError: Error | null = null;
 
-    // Retry logic for network errors
+    // Lógica de retry para erros de rede
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
         const response = await this.makeRequest(imageData, userId);
         
-        // If we got a response (even an error response), return it
-        // Don't retry for application-level errors (validation, max attempts, etc.)
+        // Se obtivemos uma resposta (mesmo que seja de erro), retorna
+        // Não faz retry para erros de nível de aplicação (validação, tentativas máximas, etc.)
         return response;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
         
-        // Only retry on network errors, not on timeout or other errors
+        // Apenas faz retry em erros de rede, não em timeout ou outros erros
         const isNetworkError = error instanceof TypeError;
         const isLastAttempt = attempt === this.maxRetries;
         
@@ -81,17 +81,17 @@ export class APIClient {
             timestamp: new Date().toISOString()
           });
           
-          // Exponential backoff: wait 1s, then 2s
+          // Backoff exponencial: espera 1s, depois 2s
           await this.delay(1000 * (attempt + 1));
           continue;
         }
         
-        // Don't retry for timeouts or on last attempt
+        // Não faz retry para timeouts ou na última tentativa
         break;
       }
     }
 
-    // All retries failed, return error response
+    // Todas as tentativas falharam, retorna resposta de erro
     console.error('[APIClient] All retry attempts failed:', {
       userId,
       error: lastError?.message,
@@ -103,27 +103,27 @@ export class APIClient {
   }
 
   /**
-   * Make a single HTTP request to the backend
+   * Faz uma única requisição HTTP para o backend
    * 
-   * @param imageData - Base64 encoded image data
-   * @param userId - User identifier
-   * @returns Promise resolving to CaptureResponse
-   * @throws Error if request fails
+   * @param imageData - Dados de imagem codificados em base64
+   * @param userId - Identificador de usuário
+   * @returns Promise resolvendo para CaptureResponse
+   * @throws Error se requisição falhar
    */
   private async makeRequest(imageData: string, userId: string): Promise<CaptureResponse> {
-    // Create request body
+    // Cria corpo da requisição
     const requestBody: CaptureRequest = {
       imageData,
       userId,
       timestamp: Date.now()
     };
 
-    // Create abort controller for timeout handling
+    // Cria abort controller para manipulação de timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      // Make HTTP POST request
+      // Faz requisição HTTP POST
       const response = await fetch(`${this.backendUrl}/api/capture`, {
         method: 'POST',
         headers: {
@@ -133,13 +133,13 @@ export class APIClient {
         signal: controller.signal,
       });
 
-      // Clear timeout
+      // Limpa timeout
       clearTimeout(timeoutId);
 
-      // Parse response
+      // Analisa resposta
       const data: CaptureResponse = await response.json();
 
-      // Log response for debugging
+      // Registra resposta para depuração
       console.log('[APIClient] Response received:', {
         userId,
         status: response.status,
@@ -152,17 +152,17 @@ export class APIClient {
 
       return data;
     } catch (error) {
-      // Clear timeout on error
+      // Limpa timeout em caso de erro
       clearTimeout(timeoutId);
       throw error;
     }
   }
 
   /**
-   * Handle errors and convert to CaptureResponse
+   * Manipula erros e converte para CaptureResponse
    * 
-   * @param error - Error that occurred
-   * @returns CaptureResponse with error details
+   * @param error - Erro que ocorreu
+   * @returns CaptureResponse com detalhes do erro
    */
   private handleError(error: Error | null): CaptureResponse {
     if (!error) {
@@ -173,7 +173,7 @@ export class APIClient {
       };
     }
 
-    // Handle timeout
+    // Manipula timeout
     if (error.name === 'AbortError') {
       return {
         success: false,
@@ -182,7 +182,7 @@ export class APIClient {
       };
     }
 
-    // Handle network errors
+    // Manipula erros de rede
     if (error instanceof TypeError) {
       return {
         success: false,
@@ -191,7 +191,7 @@ export class APIClient {
       };
     }
 
-    // Handle other errors
+    // Manipula outros erros
     return {
       success: false,
       error: error.message || 'Ocorreu um erro inesperado. Por favor, tente novamente.',
@@ -200,21 +200,21 @@ export class APIClient {
   }
 
   /**
-   * Utility method to delay execution
+   * Método utilitário para atrasar execução
    * 
-   * @param ms - Milliseconds to delay
-   * @returns Promise that resolves after delay
+   * @param ms - Milissegundos para atrasar
+   * @returns Promise que resolve após o atraso
    */
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
-   * Check if a user is registered in the system
+   * Verifica se um usuário está cadastrado no sistema
    * 
-   * @param userId - User identifier to check
-   * @returns Promise resolving to boolean indicating if user is registered
-   * @throws Error if request fails
+   * @param userId - Identificador de usuário para verificar
+   * @returns Promise resolvendo para boolean indicando se usuário está cadastrado
+   * @throws Error se requisição falhar
    */
   async checkUserRegistration(userId: string): Promise<boolean> {
     try {
@@ -255,12 +255,12 @@ export class APIClient {
   }
 
   /**
-   * Register a new user with facial biometric data
+   * Cadastra um novo usuário com dados biométricos faciais
    * 
-   * @param userId - User identifier
-   * @param imageData - Base64 encoded image data
-   * @returns Promise resolving to RegisterResponse
-   * @throws Error if request fails
+   * @param userId - Identificador de usuário
+   * @param imageData - Dados de imagem codificados em base64
+   * @returns Promise resolvendo para RegisterResponse
+   * @throws Error se requisição falhar
    */
   async registerUser(userId: string, imageData: string): Promise<RegisterResponse> {
     try {
@@ -304,5 +304,5 @@ export class APIClient {
   }
 }
 
-// Export singleton instance
+// Exporta instância singleton
 export const apiClient = new APIClient();

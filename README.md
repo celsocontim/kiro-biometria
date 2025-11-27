@@ -7,11 +7,14 @@ Uma aplicação web full-stack para capturar imagens faciais com detecção de v
 - 📷 Feed de câmera ao vivo em tela cheia com guia de posicionamento facial
 - 🎯 Detecção de vivacidade em tempo real (anti-fraude)
 - 👤 Identificação de usuário com pontuação de confiança
-- 🔄 Rastreamento de tentativas configurável (ilimitado ou limitado)
+- 🔄 Rastreamento de tentativas configurável (ilimitado ou limitado) com persistência SQLite
 - 📱 Design totalmente responsivo (móvel, tablet, desktop)
 - 🔌 Suporte a incorporação em iframe com API PostMessage
 - ⚙️ Configuração em tempo de execução sem implantação
 - 🧪 Modo mock para desenvolvimento/testes
+- 👤 Parâmetro "nome" com validação e sanitização de segurança
+- 🎨 Identidade visual customizável (cor primária #00995D)
+- 📊 Sistema de logging simplificado vs detalhado
 
 ## Estrutura do Projeto
 
@@ -126,6 +129,7 @@ npm run dev
 | `USE_MOCK` | false | Usar reconhecimento mock ao invés da API real |
 | `FACE_API_URL` | - | URL do endpoint da API de reconhecimento facial |
 | `FACE_API_KEY` | - | Chave de autenticação da API de reconhecimento facial |
+| `DEBUG_LOGGING` | false | Ativar logging detalhado (true) ou simplificado (false) |
 
 ### Comportamento da Configuração
 
@@ -142,7 +146,7 @@ npm run dev
 - `GET /health` - Verificação de saúde
 - `GET /api/config` - Obter configuração atual (debug)
 - `POST /api/user` - Verificar se usuário está cadastrado
-- `POST /api/register` - Cadastrar novo usuário com dados faciais
+- `POST /api/register` - Cadastrar novo usuário com dados faciais e nome (opcional)
 - `POST /api/capture` - Processar identificação de reconhecimento facial
 
 **Solicitação de Verificação de Usuário:**
@@ -164,7 +168,8 @@ npm run dev
 ```json
 {
   "user_id": "string",
-  "imageData": "data:image/jpeg;base64,..."
+  "imageData": "data:image/jpeg;base64,...",
+  "name": "João Silva" // Opcional, sanitizado no backend
 }
 ```
 
@@ -348,18 +353,22 @@ A aplicação suporta incorporação em iframe com comunicação PostMessage:
 ## Recursos de Segurança
 
 - Detecção de vivacidade previne fraudes
-- Limites de tentativas configuráveis
+- Limites de tentativas configuráveis com persistência SQLite
 - Bloqueio de usuário após tentativas máximas
 - Requisito de HTTPS seguro para acesso à câmera
 - Proteção CORS
-- Validação de requisições
+- Validação e sanitização de requisições (incluindo parâmetro "nome")
 - Registro de erros para monitoramento de segurança
+- Mapeamento de códigos de erro específicos da FACE_API (106, 107, 108, 109)
 
 ## Documentação
 
 - [Guia de Tratamento de Erros](ERROR_HANDLING.md)
 - [Otimizações de Performance](PERFORMANCE_OPTIMIZATIONS.md)
 - [Verificação de Configuração](SETUP_VERIFICATION.md)
+- [Sistema de Logging](backend/LOGGING.md)
+- [Implementação SQLite](backend/SQLITE_IMPLEMENTATION.md)
+- [Documentação da API](backend/API.md)
 - [Especificação de Requisitos](.kiro/specs/facial-recognition-capture/requirements.md)
 - [Documento de Design](.kiro/specs/facial-recognition-capture/design.md)
 

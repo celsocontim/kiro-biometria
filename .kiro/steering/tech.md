@@ -44,6 +44,7 @@
 - `express`: ^4.18.0
 - `cors`: ^2.8.5
 - `dotenv`: ^16.4.0
+- `better-sqlite3`: ^11.7.0 (SQLite database)
 
 ### Dependências de Dev Compartilhadas
 - `typescript`: ^5.0.0
@@ -124,10 +125,12 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
 PORT=4000
 FRONTEND_URL=http://localhost:3000
 MAX_FAILURE_ATTEMPTS=0
+FAILURE_RECORD_TTL=2
 RECOGNITION_THRESHOLD=70
 USE_MOCK=false
 FACE_API_URL=your-face-api-url-here
 FACE_API_KEY=your-face-api-key-here
+DEBUG_LOGGING=false
 ```
 
 ## Saída de Build

@@ -29,19 +29,19 @@ export class CameraService {
    */
   async requestCameraAccess(facingMode: FacingMode = 'user', retryWithFallback: boolean = true): Promise<MediaStream> {
     try {
-      // Check if getUserMedia is supported
+      // Verifica se getUserMedia é suportado
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.error('[CameraService] getUserMedia not supported');
         throw new Error('O acesso à câmera não é suportado neste navegador. Por favor, use um navegador moderno como Chrome, Firefox ou Safari.');
       }
 
-      // Check if we're on a secure context (HTTPS or localhost)
+      // Verifica se estamos em um contexto seguro (HTTPS ou localhost)
       if (!window.isSecureContext) {
         console.error('[CameraService] Not in secure context');
         throw new Error('O acesso à câmera requer uma conexão segura (HTTPS). Por favor, acesse esta página via HTTPS ou localhost.');
       }
 
-      // Determine appropriate resolution based on device type
+      // Determina resolução apropriada baseada no tipo de dispositivo
       const isMobile = this.isMobileDevice();
       const idealWidth = isMobile ? 1280 : 1920;
       const idealHeight = isMobile ? 720 : 1080;
@@ -72,7 +72,7 @@ export class CameraService {
 
       return stream;
     } catch (error) {
-      // Log error for debugging
+      // Registra erro para depuração
       console.error('[CameraService] Camera access failed:', {
         facingMode,
         error: error instanceof Error ? error.name : 'Unknown',
@@ -80,11 +80,11 @@ export class CameraService {
         timestamp: new Date().toISOString()
       });
 
-      // Try fallback with relaxed constraints for OverconstrainedError
+      // Tenta fallback com restrições relaxadas para OverconstrainedError
       if (error instanceof Error && error.name === 'OverconstrainedError' && retryWithFallback) {
         console.log('[CameraService] Retrying with fallback constraints');
         try {
-          // Try with basic constraints (no resolution or facing mode preference)
+          // Tenta com restrições básicas (sem preferência de resolução ou modo de câmera)
           const fallbackStream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: false
@@ -94,12 +94,12 @@ export class CameraService {
           return fallbackStream;
         } catch (fallbackError) {
           console.error('[CameraService] Fallback also failed:', fallbackError);
-          // Continue to error handling below
+          // Continua para tratamento de erro abaixo
         }
       }
 
       if (error instanceof Error) {
-        // Requirement 1.5: Handle specific error types with user-friendly messages
+        // Requisito 1.5: Manipula tipos de erro específicos com mensagens amigáveis ao usuário
         if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
           throw new Error('Acesso à câmera negado. Por favor, permita o acesso à câmera nas configurações do navegador e atualize a página.');
         } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
@@ -134,7 +134,7 @@ export class CameraService {
    */
   captureFrame(videoElement: HTMLVideoElement): string {
     try {
-      // Validate video element state
+      // Valida estado do elemento de vídeo
       if (!videoElement) {
         throw new Error('Elemento de vídeo não está disponível');
       }
@@ -147,12 +147,12 @@ export class CameraService {
         throw new Error('As dimensões do vídeo são inválidas. Por favor, certifique-se de que a câmera está funcionando corretamente.');
       }
 
-      // Create canvas with video dimensions
+      // Cria canvas com dimensões do vídeo
       const canvas = document.createElement('canvas');
       let width = videoElement.videoWidth;
       let height = videoElement.videoHeight;
       
-      // Resize if dimensions are too large (max 1920x1080)
+      // Redimensiona se dimensões forem muito grandes (máx 1920x1080)
       const maxWidth = 1920;
       const maxHeight = 1080;
       
@@ -170,7 +170,7 @@ export class CameraService {
       canvas.width = width;
       canvas.height = height;
 
-      // Draw current video frame to canvas
+      // Desenha quadro de vídeo atual no canvas
       const context = canvas.getContext('2d');
       if (!context) {
         throw new Error('Failed to get canvas context. Your browser may not support this feature.');
@@ -178,19 +178,19 @@ export class CameraService {
 
       context.drawImage(videoElement, 0, 0, width, height);
 
-      // Convert to base64 JPEG with compression
-      // Start with 0.8 quality and reduce if needed to stay under 1MB
+      // Converte para JPEG base64 com compressão
+      // Começa com qualidade 0.8 e reduz se necessário para ficar abaixo de 1MB
       let quality = 0.8;
       let imageData = canvas.toDataURL('image/jpeg', quality);
       
-      // Check size and reduce quality if needed (1MB = ~1.33MB base64)
-      const maxBase64Size = 1.33 * 1024 * 1024; // 1MB in base64
+      // Verifica tamanho e reduz qualidade se necessário (1MB = ~1.33MB base64)
+      const maxBase64Size = 1.33 * 1024 * 1024; // 1MB em base64
       while (imageData.length > maxBase64Size && quality > 0.3) {
         quality -= 0.1;
         imageData = canvas.toDataURL('image/jpeg', quality);
       }
 
-      // Validate that we got valid image data
+      // Valida que obtivemos dados de imagem válidos
       if (!imageData || !imageData.startsWith('data:image/')) {
         throw new Error('Falha ao gerar dados de imagem do quadro de vídeo');
       }
@@ -228,18 +228,18 @@ export class CameraService {
    * Requisito 7.2: Exibir botão de troca de câmera em dispositivos móveis
    */
   isMobileDevice(): boolean {
-    // Check user agent for mobile indicators
+    // Verifica user agent para indicadores de dispositivo móvel
     const userAgent = navigator.userAgent || (window as any).opera || '';
     
-    // Check for mobile patterns in user agent
+    // Verifica padrões de dispositivo móvel no user agent
     const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
     const isMobileUA = mobileRegex.test(userAgent.toLowerCase());
 
-    // Also check for touch support and screen size
+    // Também verifica suporte a toque e tamanho de tela
     const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     const isSmallScreen = window.innerWidth < 768;
 
-    // Consider it mobile if it matches UA pattern or has touch + small screen
+    // Considera móvel se corresponder ao padrão UA ou tiver toque + tela pequena
     return isMobileUA || (hasTouchScreen && isSmallScreen);
   }
 

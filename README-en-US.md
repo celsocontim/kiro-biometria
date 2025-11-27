@@ -7,11 +7,14 @@ A full-stack web application for capturing facial images with real-time liveness
 - 📷 Full-screen live camera feed with face positioning guide
 - 🎯 Real-time liveness detection (anti-spoofing)
 - 👤 User identification with confidence scoring
-- 🔄 Configurable attempt tracking (unlimited or limited)
+- 🔄 Configurable attempt tracking (unlimited or limited) with SQLite persistence
 - 📱 Fully responsive design (mobile, tablet, desktop)
 - 🔌 Iframe embedding support with PostMessage API
 - ⚙️ Runtime configuration without deployment
 - 🧪 Mock mode for development/testing
+- 👤 "Name" parameter with validation and security sanitization
+- 🎨 Customizable visual identity (primary color #00995D)
+- 📊 Simplified vs detailed logging system
 
 ## Project Structure
 
@@ -121,10 +124,12 @@ npm run dev
 | `PORT` | 4000 | Backend server port |
 | `FRONTEND_URL` | http://localhost:3000 | Frontend URL for CORS |
 | `MAX_FAILURE_ATTEMPTS` | 0 | Max failed attempts before lockout (0 = unlimited) |
+| `FAILURE_RECORD_TTL` | 2 | Time in minutes to expire failure records |
 | `RECOGNITION_THRESHOLD` | 70 | Confidence threshold (0-100) for recognition |
 | `USE_MOCK` | false | Use mock recognition instead of real API |
 | `FACE_API_URL` | - | Facial recognition API endpoint URL |
 | `FACE_API_KEY` | - | Facial recognition API authentication key |
+| `DEBUG_LOGGING` | false | Enable detailed logging (true) or simplified (false) |
 
 ### Configuration Behavior
 
@@ -163,7 +168,8 @@ npm run dev
 ```json
 {
   "user_id": "string",
-  "imageData": "data:image/jpeg;base64,..."
+  "imageData": "data:image/jpeg;base64,...",
+  "name": "John Doe" // Optional, sanitized on backend
 }
 ```
 
@@ -347,18 +353,22 @@ The application supports iframe embedding with PostMessage communication:
 ## Security Features
 
 - Liveness detection prevents spoofing
-- Configurable attempt limits
+- Configurable attempt limits with SQLite persistence
 - User lockout after max attempts
 - Secure HTTPS requirement for camera access
 - CORS protection
-- Request validation
+- Request validation and sanitization (including "name" parameter)
 - Error logging for security monitoring
+- Specific FACE_API error code mapping (106, 107, 108, 109)
 
 ## Documentation
 
 - [Error Handling Guide](ERROR_HANDLING.md)
 - [Performance Optimizations](PERFORMANCE_OPTIMIZATIONS.md)
 - [Setup Verification](SETUP_VERIFICATION.md)
+- [Logging System](backend/LOGGING.md)
+- [SQLite Implementation](backend/SQLITE_IMPLEMENTATION.md)
+- [API Documentation](backend/API.md)
 - [Requirements Specification](.kiro/specs/facial-recognition-capture/requirements.md)
 - [Design Document](.kiro/specs/facial-recognition-capture/design.md)
 

@@ -1,40 +1,30 @@
 /**
- * Failure tracking record for a user
- */
-export interface FailureRecord {
-  userId: string;
-  failureCount: number;
-  lastFailureTimestamp: number;
-  isLocked: boolean;
-}
-
-/**
  * Interface for failure tracking service
+ * Defines the contract that all failure tracking implementations must follow
  */
 export interface IFailureTrackingService {
   /**
-   * Record a failed attempt for a user
-   * @param userId User identifier
+   * Record a failure for a user
    */
   recordFailure(userId: string): Promise<void>;
   
   /**
-   * Reset failure count on success
-   * @param userId User identifier
-   */
-  resetFailures(userId: string): Promise<void>;
-  
-  /**
-   * Check if user has exceeded max attempts
-   * @param userId User identifier
-   * @returns True if user is locked out
+   * Check if a user is currently locked
    */
   isUserLocked(userId: string): Promise<boolean>;
   
   /**
    * Get remaining attempts for a user
-   * @param userId User identifier
-   * @returns Number of remaining attempts
    */
   getRemainingAttempts(userId: string): Promise<number>;
+  
+  /**
+   * Get minutes until lockout expires
+   */
+  getMinutesUntilExpiry(userId: string): Promise<number>;
+  
+  /**
+   * Reset failures for a user
+   */
+  resetFailures(userId: string): Promise<void>;
 }

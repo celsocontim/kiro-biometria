@@ -220,30 +220,36 @@ The application implements robust error handling at all layers:
 - Detailed logging of issues
 - Continue operation with safe values
 
-### Failure Tracking Service Errors
+### Failure Tracking Service Errors (SQLite)
 
 **Error Scenarios:**
-1. **Record Failure Error**: Cannot increment count
-   - Action: Throw error to caller
-   - Logging: Error details
+1. **Database Connection Error**: Cannot connect to SQLite
+   - Action: Throw error on initialization
+   - Logging: Full error details with database path
 
-2. **Reset Failure Error**: Cannot reset count
+2. **Record Failure Error**: Cannot increment count
+   - Action: Throw error to caller
+   - Logging: Error details with user_id
+
+3. **Reset Failure Error**: Cannot reset count
    - Action: Continue (non-critical)
    - Logging: Error logged
 
-3. **Lock Check Error**: Cannot determine status
+4. **Lock Check Error**: Cannot determine status
    - Action: Fail open (allow attempt)
    - Logging: Error logged
 
-4. **Get Attempts Error**: Cannot calculate remaining
-   - Action: Return 0 (safe default)
+5. **Cleanup Error**: Cannot remove old records
+   - Action: Continue (non-critical)
    - Logging: Error logged
 
 **Implementation:**
+- SQLite persistence ensures data survives restarts
 - Critical operations throw errors
 - Non-critical operations log and continue
 - Safe defaults for error cases
-- Detailed error logging
+- Automatic cleanup of old records (24h+)
+- Detailed error logging with context
 
 ### Global Error Handlers (Express)
 
@@ -294,10 +300,11 @@ All backend errors follow this format:
 
 **Error Codes:**
 - `INVALID_REQUEST`: Validation failure
-- `MAX_ATTEMPTS_EXCEEDED`: User locked out (identification only)
-- `LIVENESS_CHECK_ERROR`: Spoof detection failure
+- `MAX_ATTEMPTS_EXCEEDED`: User locked out (both registration and identification)
+- `LIVENESS_CHECK_ERROR`: Spoof detection failure (FACE_API codes 106, 107, 108, 109)
 - `SERVER_ERROR`: Internal server error
 - `NOT_FOUND`: Route not found
+- `FACE_API_ERROR`: Face API specific errors with detailed messages
 
 ## Logging Standards
 

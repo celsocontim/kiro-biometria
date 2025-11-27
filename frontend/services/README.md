@@ -1,52 +1,74 @@
 # Frontend Services
 
-This directory contains service classes that handle specific functionality for the facial recognition capture application.
+Este diretório contém classes de serviço que manipulam funcionalidades específicas para a aplicação de captura de reconhecimento facial.
 
 ## CameraService
 
-The `CameraService` provides a comprehensive interface for camera operations.
+O `CameraService` fornece uma interface abrangente para operações de câmera.
 
-### Features
+### Funcionalidades
 
-- **Camera Access**: Request camera access with support for front/back camera selection
-- **Frame Capture**: Capture video frames as base64-encoded images
-- **Device Detection**: Detect mobile vs desktop devices
-- **Camera Enumeration**: List available camera devices
-- **Resource Management**: Properly stop and cleanup camera streams
+- **Acesso à Câmera**: Solicita acesso à câmera com suporte para seleção de câmera frontal/traseira
+- **Captura de Quadro**: Captura quadros de vídeo como imagens codificadas em base64
+- **Detecção de Dispositivo**: Detecta dispositivos móveis vs desktop
+- **Enumeração de Câmeras**: Lista dispositivos de câmera disponíveis
+- **Gerenciamento de Recursos**: Para e limpa streams de câmera adequadamente
 
-### Usage Example
+### Exemplo de Uso
 
 ```typescript
 import { cameraService } from '@/services/CameraService';
 
-// Request front camera access
+// Solicita acesso à câmera frontal
 const stream = await cameraService.requestCameraAccess('user');
 
-// Capture a frame from video element
+// Captura um quadro do elemento de vídeo
 const videoElement = document.querySelector('video');
 const imageData = cameraService.captureFrame(videoElement);
 
-// Check if device is mobile
+// Verifica se o dispositivo é móvel
 const isMobile = cameraService.isMobileDevice();
 
-// Get available cameras
+// Obtém câmeras disponíveis
 const cameras = await cameraService.getAvailableCameras();
 
-// Stop the stream when done
+// Para o stream quando terminar
 cameraService.stopStream(stream);
 ```
 
-### Requirements Satisfied
+### Requisitos Atendidos
 
-- **1.1**: Display live camera feed
-- **1.4**: Request camera permissions from user's device
-- **2.2**: Capture current camera frame as image
-- **7.2**: Toggle between front-facing and back-facing cameras
+- **1.1**: Exibir feed de câmera ao vivo
+- **1.4**: Solicitar permissões de câmera do dispositivo do usuário
+- **2.2**: Capturar quadro atual da câmera como imagem
+- **7.2**: Alternar entre câmeras frontal e traseira
 
-### Error Handling
+### Tratamento de Erros
 
-The service provides detailed error messages for common camera access issues:
-- Permission denied
-- No camera found
-- Camera already in use
-- Other camera errors
+O serviço fornece mensagens de erro detalhadas para problemas comuns de acesso à câmera:
+- Permissão negada
+- Nenhuma câmera encontrada
+- Câmera já em uso
+- Outros erros de câmera
+
+## APIClient
+
+O `APIClient` manipula toda a comunicação com o backend.
+
+### Funcionalidades
+
+- **Verificação de Cadastro**: Verifica se usuário está cadastrado
+- **Cadastro de Usuário**: Cadastra novo usuário com dados faciais e nome (opcional)
+- **Identificação**: Processa reconhecimento facial
+- **Retry Automático**: Retry com backoff exponencial para erros de rede
+- **Timeout**: Timeout de 30 segundos para todas as requisições
+
+## IframeMessenger
+
+O `IframeMessenger` manipula comunicação com janela pai quando incorporado em iframe.
+
+### Funcionalidades
+
+- **Detecção de Iframe**: Detecta se aplicação está incorporada
+- **PostMessage**: Envia mensagens de sucesso/falha para janela pai
+- **Tratamento Gracioso**: Manipula cenários não incorporados sem erros

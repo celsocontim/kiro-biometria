@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { CaptureRequest, CaptureResponse } from '../types/api.types';
 import { RecognitionService } from '../services/RecognitionService';
-import { FailureTrackingService } from '../services/FailureTrackingService';
+import { IFailureTrackingService } from '../types/failure.types';
 import { IConfigurationService } from '../types/config.types';
 import { debugLog, infoLog, warnLog, errorLog } from '../utils/logger';
 
@@ -42,7 +42,7 @@ export async function handleCapture(
   req: Request,
   res: Response,
   recognitionService: RecognitionService,
-  failureTrackingService: FailureTrackingService,
+  failureTrackingService: IFailureTrackingService,
   configService: IConfigurationService
 ): Promise<void> {
   const startTime = Date.now();

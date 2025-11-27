@@ -3,7 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { ConfigurationService } from './services/ConfigurationService';
 import { RecognitionService } from './services/RecognitionService';
-import { FailureTrackingService } from './services/FailureTrackingService';
+import { FailureTrackingServiceSQLite } from './services/FailureTrackingServiceSQLite';
+import { IFailureTrackingService } from './types/failure.types';
 import { handleCapture } from './routes/capture';
 import { handleUserCheck } from './routes/user';
 import { handleRegister } from './routes/register';
@@ -16,7 +17,7 @@ const port = process.env.PORT || 3001;
 // Initialize services
 const configService = new ConfigurationService();
 const recognitionService = new RecognitionService();
-const failureTrackingService = new FailureTrackingService(configService);
+const failureTrackingService: IFailureTrackingService = new FailureTrackingServiceSQLite(configService);
 
 // Start auto-reload with 60 second interval
 configService.startAutoReload(60000);
@@ -54,8 +55,9 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 app.use((req: Request, res: Response, next: any) => {
   const startTime = Date.now();
   
-  // Log request details if DEBUG_LOGGING is enabled
+  // Log request details
   if (process.env.DEBUG_LOGGING === 'true') {
+    // Detailed logging
     console.log('\n========== INCOMING REQUEST ==========');
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
     console.log('Headers:', JSON.stringify(req.headers, null, 2));
@@ -69,6 +71,9 @@ app.use((req: Request, res: Response, next: any) => {
     }
     console.log('Query:', JSON.stringify(req.query, null, 2));
     console.log('======================================\n');
+  } else {
+    // Simplified logging
+    console.log(`→ ${req.method} ${req.url}`);
   }
   
   // Capture response
@@ -77,6 +82,7 @@ app.use((req: Request, res: Response, next: any) => {
     const duration = Date.now() - startTime;
     
     if (process.env.DEBUG_LOGGING === 'true') {
+      // Detailed logging
       console.log('\n========== OUTGOING RESPONSE ==========');
       console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
       console.log(`Status: ${res.statusCode}`);
@@ -88,6 +94,10 @@ app.use((req: Request, res: Response, next: any) => {
         console.log('Response:', data);
       }
       console.log('=======================================\n');
+    } else {
+      // Simplified logging
+      const statusEmoji = res.statusCode >= 200 && res.statusCode < 300 ? '✓' : '✗';
+      console.log(`← ${statusEmoji} ${res.statusCode} ${req.method} ${req.url} (${duration}ms)`);
     }
     
     return originalSend.call(this, data);
@@ -219,6 +229,23 @@ process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
     stack: reason instanceof Error ? reason.stack : undefined,
     timestamp: new Date().toISOString()
   });
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('\n[Server] SIGTERM received, closing gracefully...');
+  if ('close' in failureTrackingService && typeof failureTrackingService.close === 'function') {
+    failureTrackingService.close();
+  }
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('\n[Server] SIGINT received, closing gracefully...');
+  if ('close' in failureTrackingService && typeof failureTrackingService.close === 'function') {
+    failureTrackingService.close();
+  }
+  process.exit(0);
 });
 
 app.listen(port, async () => {

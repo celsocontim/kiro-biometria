@@ -1,16 +1,16 @@
 /**
- * Logging utility for conditional debug logging
+ * Utilitário de logging com suporte a modo debug condicional
  */
 
 /**
- * Check if debug logging is enabled (checked dynamically)
+ * Verifica se logging de debug está habilitado (verificado dinamicamente)
  */
 function isDebugEnabled(): boolean {
   return process.env.DEBUG_LOGGING === 'true';
 }
 
 /**
- * Log debug information only if DEBUG_LOGGING is enabled
+ * Registra informações de debug apenas se DEBUG_LOGGING estiver habilitado
  */
 export function debugLog(message: string, data?: any): void {
   if (isDebugEnabled()) {
@@ -24,29 +24,47 @@ export function debugLog(message: string, data?: any): void {
 }
 
 /**
- * Always log important information (errors, warnings, security events)
+ * Sempre registra informações importantes (erros, avisos, eventos de segurança)
+ * Usa formato simplificado quando DEBUG_LOGGING é false
  */
 export function infoLog(message: string): void {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${message}`);
+  if (isDebugEnabled()) {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${message}`);
+  } else {
+    // Simplified log without timestamp
+    console.log(message);
+  }
 }
 
 /**
- * Always log warnings
+ * Sempre registra avisos
+ * Usa formato simplificado quando DEBUG_LOGGING é false
  */
 export function warnLog(message: string): void {
-  const timestamp = new Date().toISOString();
-  console.warn(`[${timestamp}] ${message}`);
+  if (isDebugEnabled()) {
+    const timestamp = new Date().toISOString();
+    console.warn(`[${timestamp}] ${message}`);
+  } else {
+    // Simplified log without timestamp
+    console.warn(`⚠️  ${message}`);
+  }
 }
 
 /**
- * Always log errors
+ * Sempre registra erros
+ * Usa formato simplificado quando DEBUG_LOGGING é false
  */
 export function errorLog(message: string, data?: any): void {
-  const timestamp = new Date().toISOString();
-  if (data) {
-    console.error(`[${timestamp}] ${message}`, JSON.stringify(data, null, 2));
+  if (isDebugEnabled()) {
+    const timestamp = new Date().toISOString();
+    if (data) {
+      console.error(`[${timestamp}] ${message}`, JSON.stringify(data, null, 2));
+    } else {
+      console.error(`[${timestamp}] ${message}`);
+    }
   } else {
-    console.error(`[${timestamp}] ${message}`);
+    // Log simplificado sem timestamp e dados
+    console.error(`❌ ${message}`);
   }
 }

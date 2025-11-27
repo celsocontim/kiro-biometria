@@ -1,30 +1,30 @@
 /**
  * IframeMessenger
  * 
- * Handles communication with parent window when application is embedded as iframe.
- * Provides methods to:
- * - Detect if application is embedded in an iframe
- * - Send completion status messages to parent window
- * - Handle cases where parent window doesn't exist
+ * Manipula comunicação com janela pai quando aplicação está incorporada como iframe.
+ * Fornece métodos para:
+ * - Detectar se aplicação está incorporada em um iframe
+ * - Enviar mensagens de status de conclusão para janela pai
+ * - Manipular casos onde janela pai não existe
  * 
- * Requirements: 10.1, 10.2, 10.3, 10.4, 10.5
+ * Requisitos: 10.1, 10.2, 10.3, 10.4, 10.5
  */
 
 export class IframeMessenger {
   /**
-   * Check if application is embedded in an iframe
+   * Verifica se aplicação está incorporada em um iframe
    * 
-   * @returns true if embedded in iframe, false otherwise
+   * @returns true se incorporada em iframe, false caso contrário
    * 
-   * Requirement 10.4: Detect parent window context
-   * Requirement 10.5: Handle non-embedded scenario gracefully
+   * Requisito 10.4: Detectar contexto de janela pai
+   * Requisito 10.5: Manipular cenário não incorporado graciosamente
    */
   isEmbedded(): boolean {
     try {
-      // Check if window.parent exists and is different from current window
+      // Verifica se window.parent existe e é diferente da janela atual
       return window.parent !== window;
     } catch (error) {
-      // In case of cross-origin restrictions, assume not embedded
+      // Em caso de restrições de cross-origin, assume não incorporado
       console.warn('[IframeMessenger] Unable to determine iframe status:', {
         error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
@@ -34,48 +34,48 @@ export class IframeMessenger {
   }
 
   /**
-   * Send completion status to parent window
+   * Envia status de conclusão para janela pai
    * 
-   * @param success - true for successful recognition, false for max attempts exceeded
+   * @param success - true para reconhecimento bem-sucedido, false para tentativas máximas excedidas
    * 
-   * Requirement 10.1: Send "True" message on successful recognition
-   * Requirement 10.2: Send "False" message when max attempts exceeded
-   * Requirement 10.5: Handle non-embedded scenario gracefully
+   * Requisito 10.1: Enviar mensagem "True" em reconhecimento bem-sucedido
+   * Requisito 10.2: Enviar mensagem "False" quando tentativas máximas excedidas
+   * Requisito 10.5: Manipular cenário não incorporado graciosamente
    */
   sendCompletionStatus(success: boolean): void {
-    // Only send message if embedded in iframe
+    // Apenas envia mensagem se incorporado em iframe
     if (!this.isEmbedded()) {
       console.log('[IframeMessenger] Not embedded in iframe, skipping postMessage');
       return;
     }
 
     try {
-      // Send message to parent window
+      // Envia mensagem para janela pai
       const message = success ? 'True' : 'False';
       this.postMessageToParent(message);
     } catch (error) {
-      // Handle cases where parent window doesn't exist or is inaccessible
+      // Manipula casos onde janela pai não existe ou está inacessível
       console.error('[IframeMessenger] Failed to send message to parent window:', {
         success,
         error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       });
-      // Don't throw - this is not critical to the user experience
+      // Não lança exceção - isso não é crítico para a experiência do usuário
     }
   }
 
   /**
-   * Send message to parent window using postMessage API
+   * Envia mensagem para janela pai usando API postMessage
    * 
-   * @param message - Message string to send
+   * @param message - String de mensagem para enviar
    * 
-   * Requirement 10.3: Use postMessage API for parent communication
+   * Requisito 10.3: Usar API postMessage para comunicação com pai
    */
   postMessageToParent(message: string): void {
     try {
-      // Use '*' as target origin for maximum compatibility
-      // In production, this should be restricted to specific origin
-      // e.g., 'http://personal-zx6yray0.outsystemscloud.com'
+      // Usa '*' como origem alvo para máxima compatibilidade
+      // Em produção, isso deveria ser restrito a origem específica
+      // ex: 'http://personal-zx6yray0.outsystemscloud.com'
       window.parent.postMessage(message, '*');
       console.log(`[IframeMessenger] Message sent to parent: ${message}`);
     } catch (error) {
@@ -89,5 +89,5 @@ export class IframeMessenger {
   }
 }
 
-// Export singleton instance
+// Exporta instância singleton
 export const iframeMessenger = new IframeMessenger();

@@ -32,6 +32,7 @@ frontend/
 │   ├── FaceOvalGuide.tsx
 │   ├── FeedbackMessage.tsx
 │   ├── SuccessScreen.tsx
+│   ├── FailureScreen.tsx  # Max attempts exceeded screen
 │   └── __tests__/        # Component tests
 ├── services/              # Frontend services
 │   ├── APIClient.ts      # Backend API communication
@@ -39,6 +40,8 @@ frontend/
 │   ├── IframeMessenger.ts # PostMessage communication
 │   ├── README.md         # Services documentation
 │   └── __tests__/        # Service tests
+├── utils/                 # Utility functions
+│   └── nameUtils.ts      # Name validation and sanitization
 ├── types/                 # TypeScript type definitions
 │   ├── api.types.ts      # API request/response types
 │   └── camera.types.ts   # Camera-related types
@@ -58,19 +61,32 @@ backend/
 ├── src/
 │   ├── index.ts          # Express app entry point
 │   ├── routes/           # API route handlers
+│   │   ├── register.ts   # User registration route
+│   │   └── capture.ts    # User identification route
 │   ├── services/         # Business logic services
 │   │   ├── ConfigurationService.ts
-│   │   ├── FailureTrackingService.ts
+│   │   ├── FailureTrackingServiceSQLite.ts  # SQLite implementation
 │   │   ├── RecognitionService.ts
 │   │   └── __tests__/   # Service tests
+│   ├── utils/            # Utility functions
+│   │   └── logger.ts     # Logging utilities (simplified/detailed)
 │   └── types/            # TypeScript type definitions
 │       ├── api.types.ts
 │       ├── config.types.ts
 │       ├── failure.types.ts
 │       └── recognition.types.ts
+├── data/                 # SQLite database files
+│   ├── failures.db       # Main database
+│   ├── failures.db-shm   # Shared memory (WAL)
+│   └── failures.db-wal   # Write-ahead log
+├── scripts/              # Utility scripts
+│   └── README.md         # Scripts documentation
 ├── dist/                 # Compiled output (gitignored)
 ├── .env                  # Environment variables (gitignored)
 ├── .env.example          # Environment template
+├── API.md                # API documentation
+├── LOGGING.md            # Logging system documentation
+├── SQLITE_IMPLEMENTATION.md  # SQLite implementation details
 ├── jest.config.js        # Jest configuration
 ├── tsconfig.json         # TypeScript configuration
 └── package.json          # Backend dependencies
@@ -91,11 +107,14 @@ backend/
 
 - **Camada de Serviço**: Lógica de negócio encapsulada em classes de serviço
   - `ConfigurationService`: Gerencia configuração da aplicação com observação de arquivo
-  - `FailureTrackingService`: Rastreia tentativas de usuário e bloqueios
-  - `RecognitionService`: Manipula chamadas da API de reconhecimento facial
+  - `FailureTrackingServiceSQLite`: Rastreia tentativas de usuário e bloqueios com persistência SQLite
+  - `RecognitionService`: Manipula chamadas da API de reconhecimento facial com mapeamento de erros específicos
 - **Definições de Tipos**: Contratos de requisição/resposta fortemente tipados
 - **Middleware**: Middleware Express para CORS, análise de corpo, tratamento de erros
-- **Tratamento de Erros**: Tratamento de erros centralizado com formato de resposta consistente
+- **Tratamento de Erros**: Tratamento de erros centralizado com formato de resposta consistente e códigos específicos da FACE_API
+- **Logging**: Sistema de logging com modos simplificado e detalhado (logger.ts)
+- **Persistência**: SQLite para rastreamento de falhas com limpeza automática de registros antigos
+- **Validação**: Sanitização de entrada para parâmetro "nome" e outros dados de usuário
 
 ## Convenções de Nomenclatura
 
@@ -123,13 +142,16 @@ backend/
 
 ## Documentação
 
-- Comentários JSDoc inline para funções e serviços complexos
+- Comentários JSDoc inline para funções e serviços complexos (em português brasileiro)
 - Props de componentes documentadas com interfaces TypeScript
 - Requisitos referenciados em comentários (ex: `// Requisito 1.1: Exibir feed de câmera ao vivo`)
 - Guias abrangentes em arquivos markdown no nível raiz:
   - `ERROR_HANDLING.md`: Padrões e estratégias de tratamento de erros
   - `PERFORMANCE_OPTIMIZATIONS.md`: Detalhes de implementação de performance
   - `SETUP_VERIFICATION.md`: Etapas de configuração e verificação
+  - `backend/LOGGING.md`: Sistema de logging simplificado vs detalhado
+  - `backend/SQLITE_IMPLEMENTATION.md`: Implementação e uso do SQLite
+  - `backend/API.md`: Documentação completa da API REST
 
 ## Arquivos de Configuração
 
@@ -144,6 +166,9 @@ backend/
 1. **Separação de Responsabilidades**: Componentes de UI, lógica de negócio (serviços) e tipos são claramente separados
 2. **Segurança de Tipos**: TypeScript strict com definições de tipos compartilhadas entre frontend e backend
 3. **Testabilidade**: Serviços e componentes projetados para testes fáceis com testes co-localizados
-4. **Tratamento de Erros**: Tratamento abrangente de erros em todas as camadas com mensagens amigáveis ao usuário
+4. **Tratamento de Erros**: Tratamento abrangente de erros em todas as camadas com mensagens amigáveis ao usuário e códigos específicos
 5. **Performance**: Otimizações para compressão de imagem, eficiência de rede e responsividade da UI
-6. **Documentação**: Código é auto-documentado com nomenclatura clara e comentários inline
+6. **Documentação**: Código é auto-documentado com nomenclatura clara e comentários inline em português brasileiro
+7. **Persistência**: Dados críticos (falhas de usuário) persistidos em SQLite para sobreviver a restarts
+8. **Segurança**: Validação e sanitização de todas as entradas de usuário (incluindo parâmetro "nome")
+9. **Observabilidade**: Sistema de logging configurável (simplificado para produção, detalhado para debug)
