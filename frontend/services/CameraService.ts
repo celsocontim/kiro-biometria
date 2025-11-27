@@ -1,44 +1,44 @@
 /**
  * CameraService
  * 
- * Handles all camera-related operations including:
- * - Requesting camera access with facing mode support
- * - Capturing video frames as base64 images
- * - Device detection (mobile vs desktop)
- * - Camera enumeration
- * - Stream cleanup
+ * Manipula todas as operações relacionadas à câmera incluindo:
+ * - Solicitar acesso à câmera com suporte a modo de câmera
+ * - Capturar quadros de vídeo como imagens base64
+ * - Detecção de dispositivo (móvel vs desktop)
+ * - Enumeração de câmeras
+ * - Limpeza de stream
  * 
- * Requirements: 1.1, 1.4, 2.2, 7.2
+ * Requisitos: 1.1, 1.4, 2.2, 7.2
  */
 
 import type { CameraConstraints, FacingMode } from '@/types/camera.types';
 
 export class CameraService {
   /**
-   * Request camera access with specified facing mode
+   * Solicita acesso à câmera com modo de câmera especificado
    * 
-   * @param facingMode - 'user' for front camera, 'environment' for back camera
-   * @param retryWithFallback - Whether to retry with fallback constraints on failure
-   * @returns Promise resolving to MediaStream
-   * @throws Error if camera access is denied or unavailable
+   * @param facingMode - 'user' para câmera frontal, 'environment' para câmera traseira
+   * @param retryWithFallback - Se deve tentar novamente com restrições de fallback em caso de falha
+   * @returns Promise resolvendo para MediaStream
+   * @throws Error se acesso à câmera for negado ou indisponível
    * 
-   * Requirement 1.1: Display live camera feed
-   * Requirement 1.4: Request camera permissions
-   * Requirement 1.5: Display error messages for camera issues
-   * Requirement 7.2: Toggle between front and back cameras
+   * Requisito 1.1: Exibir feed de câmera ao vivo
+   * Requisito 1.4: Solicitar permissões de câmera
+   * Requisito 1.5: Exibir mensagens de erro para problemas de câmera
+   * Requisito 7.2: Alternar entre câmeras frontal e traseira
    */
   async requestCameraAccess(facingMode: FacingMode = 'user', retryWithFallback: boolean = true): Promise<MediaStream> {
     try {
       // Check if getUserMedia is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.error('[CameraService] getUserMedia not supported');
-        throw new Error('Camera access is not supported in this browser. Please use a modern browser like Chrome, Firefox, or Safari.');
+        throw new Error('O acesso à câmera não é suportado neste navegador. Por favor, use um navegador moderno como Chrome, Firefox ou Safari.');
       }
 
       // Check if we're on a secure context (HTTPS or localhost)
       if (!window.isSecureContext) {
         console.error('[CameraService] Not in secure context');
-        throw new Error('Camera access requires a secure connection (HTTPS). Please access this page via HTTPS or localhost.');
+        throw new Error('O acesso à câmera requer uma conexão segura (HTTPS). Por favor, acesse esta página via HTTPS ou localhost.');
       }
 
       // Determine appropriate resolution based on device type
@@ -101,50 +101,50 @@ export class CameraService {
       if (error instanceof Error) {
         // Requirement 1.5: Handle specific error types with user-friendly messages
         if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-          throw new Error('Camera access denied. Please allow camera permissions in your browser settings and refresh the page.');
+          throw new Error('Acesso à câmera negado. Por favor, permita o acesso à câmera nas configurações do navegador e atualize a página.');
         } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-          throw new Error('No camera found on this device. Please ensure your device has a working camera.');
+          throw new Error('Nenhuma câmera encontrada neste dispositivo. Por favor, certifique-se de que seu dispositivo possui uma câmera funcionando.');
         } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-          throw new Error('Camera is already in use by another application. Please close other apps using the camera and try again.');
+          throw new Error('A câmera já está em uso por outro aplicativo. Por favor, feche outros aplicativos que estejam usando a câmera e tente novamente.');
         } else if (error.name === 'OverconstrainedError') {
-          throw new Error(`The requested camera (${facingMode === 'user' ? 'front' : 'back'}) is not available. Please try switching cameras.`);
+          throw new Error(`A câmera solicitada (${facingMode === 'user' ? 'frontal' : 'traseira'}) não está disponível. Por favor, tente trocar de câmera.`);
         } else if (error.name === 'SecurityError') {
-          throw new Error('Camera access blocked due to security settings. Please ensure you are using HTTPS or localhost.');
+          throw new Error('Acesso à câmera bloqueado devido às configurações de segurança. Por favor, certifique-se de estar usando HTTPS ou localhost.');
         } else if (error.name === 'TypeError') {
-          throw new Error('Camera constraints are invalid. Please refresh the page and try again.');
+          throw new Error('As configurações da câmera são inválidas. Por favor, atualize a página e tente novamente.');
         } else if (error.name === 'AbortError') {
-          throw new Error('Camera access was interrupted. Please try again.');
+          throw new Error('O acesso à câmera foi interrompido. Por favor, tente novamente.');
         } else {
-          throw new Error(`Failed to access camera: ${error.message}`);
+          throw new Error(`Falha ao acessar a câmera: ${error.message}`);
         }
       }
-      throw new Error('Failed to access camera due to an unknown error. Please refresh the page and try again.');
+      throw new Error('Falha ao acessar a câmera devido a um erro desconhecido. Por favor, atualize a página e tente novamente.');
     }
   }
 
   /**
-   * Capture current frame from video element as base64 image
+   * Captura quadro atual do elemento de vídeo como imagem base64
    * 
-   * @param videoElement - HTMLVideoElement displaying the camera stream
-   * @returns Base64 encoded image data with data URI prefix
-   * @throws Error if capture fails or video is not ready
+   * @param videoElement - HTMLVideoElement exibindo o stream da câmera
+   * @returns Dados de imagem codificados em base64 com prefixo URI de dados
+   * @throws Error se captura falhar ou vídeo não estiver pronto
    * 
-   * Requirement 2.2: Capture current camera frame as image
-   * Performance: Compress images to max 1MB
+   * Requisito 2.2: Capturar quadro atual da câmera como imagem
+   * Performance: Comprimir imagens para máximo de 1MB
    */
   captureFrame(videoElement: HTMLVideoElement): string {
     try {
       // Validate video element state
       if (!videoElement) {
-        throw new Error('Video element is not available');
+        throw new Error('Elemento de vídeo não está disponível');
       }
 
       if (videoElement.readyState < videoElement.HAVE_CURRENT_DATA) {
-        throw new Error('Video stream is not ready. Please wait a moment and try again.');
+        throw new Error('O stream de vídeo não está pronto. Por favor, aguarde um momento e tente novamente.');
       }
 
       if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
-        throw new Error('Video dimensions are invalid. Please ensure the camera is working properly.');
+        throw new Error('As dimensões do vídeo são inválidas. Por favor, certifique-se de que a câmera está funcionando corretamente.');
       }
 
       // Create canvas with video dimensions
@@ -192,7 +192,7 @@ export class CameraService {
 
       // Validate that we got valid image data
       if (!imageData || !imageData.startsWith('data:image/')) {
-        throw new Error('Failed to generate image data from video frame');
+        throw new Error('Falha ao gerar dados de imagem do quadro de vídeo');
       }
 
       console.log('[CameraService] Frame captured successfully:', {
@@ -216,16 +216,16 @@ export class CameraService {
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Failed to capture image from camera. Please try again.');
+      throw new Error('Falha ao capturar imagem da câmera. Por favor, tente novamente.');
     }
   }
 
   /**
-   * Detect if the current device is mobile
+   * Detecta se o dispositivo atual é móvel
    * 
-   * @returns true if device is mobile, false otherwise
+   * @returns true se dispositivo for móvel, false caso contrário
    * 
-   * Requirement 7.2: Display camera switch button on mobile devices
+   * Requisito 7.2: Exibir botão de troca de câmera em dispositivos móveis
    */
   isMobileDevice(): boolean {
     // Check user agent for mobile indicators
@@ -244,11 +244,11 @@ export class CameraService {
   }
 
   /**
-   * Get list of available camera devices
+   * Obtém lista de dispositivos de câmera disponíveis
    * 
-   * @returns Promise resolving to array of MediaDeviceInfo for video input devices
+   * @returns Promise resolvendo para array de MediaDeviceInfo para dispositivos de entrada de vídeo
    * 
-   * Requirement 7.2: Support camera switching
+   * Requisito 7.2: Suportar troca de câmera
    */
   async getAvailableCameras(): Promise<MediaDeviceInfo[]> {
     try {
@@ -262,11 +262,11 @@ export class CameraService {
   }
 
   /**
-   * Stop camera stream and release resources
+   * Para stream da câmera e libera recursos
    * 
-   * @param stream - MediaStream to stop
+   * @param stream - MediaStream para parar
    * 
-   * Requirement: Proper resource cleanup
+   * Requisito: Limpeza adequada de recursos
    */
   stopStream(stream: MediaStream): void {
     if (stream) {
@@ -277,5 +277,5 @@ export class CameraService {
   }
 }
 
-// Export singleton instance
+// Exporta instância singleton
 export const cameraService = new CameraService();

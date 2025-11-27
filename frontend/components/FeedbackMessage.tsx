@@ -1,14 +1,14 @@
 /**
- * FeedbackMessage Component
+ * Componente FeedbackMessage
  * 
- * Displays feedback messages to users during and after capture process.
- * Supports success and error message types with appropriate styling.
- * Auto-dismisses success messages after 3 seconds.
- * Allows manual dismissal of error messages.
- * Shows loading indicator during capture.
- * Displays attempts remaining when available.
+ * Exibe mensagens de feedback aos usuários durante e após o processo de captura.
+ * Suporta tipos de mensagem de sucesso e erro com estilo apropriado.
+ * Dispensa automaticamente mensagens de sucesso após 3 segundos.
+ * Permite dispensa manual de mensagens de erro.
+ * Mostra indicador de carregamento durante a captura.
+ * Exibe tentativas restantes quando disponível.
  * 
- * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5
+ * Requisitos: 6.1, 6.2, 6.3, 6.4, 6.5
  */
 
 'use client';
@@ -18,19 +18,19 @@ import React, { useEffect } from 'react';
 export type FeedbackType = 'success' | 'error' | 'loading';
 
 export interface FeedbackMessageProps {
-  /** Type of feedback message */
+  /** Tipo de mensagem de feedback */
   type: FeedbackType;
   
-  /** Message text to display */
+  /** Texto da mensagem a exibir */
   message: string;
   
-  /** Number of attempts remaining (optional) */
+  /** Número de tentativas restantes (opcional) */
   attemptsRemaining?: number;
   
-  /** Callback when message is dismissed */
+  /** Callback quando a mensagem é dispensada */
   onDismiss?: () => void;
   
-  /** Whether to show the message */
+  /** Se deve mostrar a mensagem */
   visible: boolean;
 }
 
@@ -41,7 +41,7 @@ export default function FeedbackMessage({
   onDismiss,
   visible
 }: FeedbackMessageProps) {
-  // Auto-dismiss messages after 10 seconds (success after 3 seconds)
+  // Dispensa automaticamente mensagens após 10 segundos (sucesso após 3 segundos)
   useEffect(() => {
     if (visible && onDismiss) {
       const timeout = type === 'success' ? 3000 : 10000;
@@ -57,8 +57,8 @@ export default function FeedbackMessage({
     return null;
   }
 
-  // Requirement 6.1: Display loading indicator during capture
-  // Requirement 3.1, 3.2, 3.3: Responsive layout with max-width constraints
+  // Requisito 6.1: Exibir indicador de carregamento durante captura
+  // Requisito 3.1, 3.2, 3.3: Layout responsivo com restrições de largura máxima
   if (type === 'loading') {
     return (
       <div
@@ -78,7 +78,7 @@ export default function FeedbackMessage({
     );
   }
 
-  // Requirement 6.2: Display success message
+  // Requisito 6.2: Exibir mensagem de sucesso
   if (type === 'success') {
     return (
       <div
@@ -108,8 +108,8 @@ export default function FeedbackMessage({
     );
   }
 
-  // Requirement 6.3: Display error message with details
-  // Requirement 6.5: Allow manual dismissal of error messages
+  // Requisito 6.3: Exibir mensagem de erro com detalhes
+  // Requisito 6.5: Permitir dispensa manual de mensagens de erro
   if (type === 'error') {
     return (
       <div
@@ -140,7 +140,7 @@ export default function FeedbackMessage({
                 className="text-sm mt-1 opacity-90"
                 data-testid="attempts-remaining"
               >
-                Attempts remaining: {attemptsRemaining}
+                Tentativas restantes: {attemptsRemaining}
               </p>
             )}
           </div>

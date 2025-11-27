@@ -3,28 +3,29 @@ import { CaptureRequest, CaptureResponse } from '../types/api.types';
 import { RecognitionService } from '../services/RecognitionService';
 import { FailureTrackingService } from '../services/FailureTrackingService';
 import { IConfigurationService } from '../types/config.types';
+import { debugLog, infoLog, warnLog, errorLog } from '../utils/logger';
 
 /**
- * Validate user identifier
- * @param userId User identifier to validate
- * @returns True if valid, false otherwise
+ * Valida identificador de usuário
+ * @param userId Identificador de usuário para validar
+ * @returns True se válido, false caso contrário
  */
 function validateUserId(userId: any): userId is string {
   return typeof userId === 'string' && userId.trim().length > 0 && userId.length <= 255;
 }
 
 /**
- * Validate image data
- * @param imageData Image data to validate
- * @returns True if valid, false otherwise
+ * Valida dados de imagem
+ * @param imageData Dados de imagem para validar
+ * @returns True se válido, false caso contrário
  */
 function validateImageData(imageData: any): imageData is string {
   if (typeof imageData !== 'string' || imageData.length === 0) {
     return false;
   }
   
-  // Check for data URI prefix (basic validation)
-  // Accept both data:image/jpeg;base64, and data:image/png;base64, formats
+  // Verifica prefixo URI de dados (validação básica)
+  // Aceita formatos data:image/jpeg;base64, e data:image/png;base64,
   const hasValidPrefix = imageData.startsWith('data:image/jpeg;base64,') || 
                          imageData.startsWith('data:image/png;base64,');
   
@@ -32,10 +33,10 @@ function validateImageData(imageData: any): imageData is string {
 }
 
 /**
- * Handler for POST /api/capture endpoint
- * Processes facial recognition capture requests
+ * Handler para endpoint POST /api/capture
+ * Processa solicitações de captura de reconhecimento facial
  * 
- * Requirements: 1.5, 4.4, 5.4, 8.2
+ * Requisitos: 1.5, 4.4, 5.4, 8.2
  */
 export async function handleCapture(
   req: Request,
@@ -53,25 +54,25 @@ export async function handleCapture(
     const requestUserId = requestBody?.userId;
     userId = requestUserId;
 
-    // Requirement 4.4: Validate user identifier and reject invalid requests
+    // Requisito 4.4: Validar identificador de usuário e rejeitar solicitações inválidas
     if (!validateUserId(userId)) {
-      console.warn('[Capture] Invalid userId provided:', {
+      debugLog('[Capture] Invalid userId provided:', {
         userId: userId || 'undefined',
         timestamp: new Date().toISOString()
       });
       
       const response: CaptureResponse = {
         success: false,
-        error: 'Invalid or missing userId. Must be a non-empty string with max 255 characters.',
+        error: 'ID de usuário inválido ou ausente. Deve ser uma string não vazia com no máximo 255 caracteres.',
         errorCode: 'INVALID_REQUEST'
       };
       res.status(400).json(response);
       return;
     }
 
-    // Requirement 4.4: Validate image data
+    // Requisito 4.4: Validar dados de imagem
     if (!validateImageData(imageData)) {
-      console.warn('[Capture] Invalid imageData provided:', {
+      debugLog('[Capture] Invalid imageData provided:', {
         userId,
         hasImageData: !!imageData,
         imageDataType: typeof imageData,
@@ -80,39 +81,39 @@ export async function handleCapture(
       
       const response: CaptureResponse = {
         success: false,
-        error: 'Invalid or missing imageData. Must be a base64 encoded image with data URI prefix.',
+        error: 'Dados de imagem inválidos ou ausentes. Deve ser uma imagem codificada em base64 com prefixo URI de dados.',
         errorCode: 'INVALID_REQUEST'
       };
       res.status(400).json(response);
       return;
     }
 
-    // Requirement 8.2: Check if user is locked due to max attempts exceeded
+    // Requisito 8.2: Verificar se usuário está bloqueado devido a tentativas máximas excedidas
     const isLocked = await failureTrackingService.isUserLocked(userId);
     if (isLocked) {
-      console.warn('[Capture] User is locked:', {
+      debugLog('[Capture] User is locked:', {
         userId,
         timestamp: new Date().toISOString()
       });
       
       const response: CaptureResponse = {
         success: false,
-        error: 'Maximum recognition attempts exceeded. Please contact support for assistance.',
+        error: 'Número máximo de tentativas de reconhecimento excedido. Por favor, entre em contato com o suporte para obter assistência.',
         errorCode: 'MAX_ATTEMPTS_EXCEEDED'
       };
       res.status(403).json(response);
       return;
     }
 
-    // Requirement 5.4: Call recognition service with error handling
-    // Get configuration parameters
+    // Requisito 5.4: Chamar serviço de reconhecimento com tratamento de erros
+    // Obtém parâmetros de configuração
     const config = await configService.getConfiguration();
     const threshold = config.recognitionThreshold;
     const useMock = config.useMock;
     const faceApiUrl = config.faceApiUrl;
     const faceApiKey = config.faceApiKey;
     
-    console.log('[Capture] Processing recognition request:', {
+    debugLog('[Capture] Processing recognition request:', {
       userId,
       imageSize: imageData.length,
       threshold,
@@ -133,27 +134,24 @@ export async function handleCapture(
         faceApiKey
       );
     } catch (error) {
-      // Check if it's a spoof detection error
+      // Verifica se é um erro de detecção de fraude
       if (error instanceof Error && (error as any).code === 'SPOOF_DETECTED') {
-        console.warn('[Capture] Spoof attempt detected:', {
-          userId,
-          timestamp: new Date().toISOString()
-        });
+        infoLog(`Spoof attempted! User_id: ${userId}`);
         
         const response: CaptureResponse = {
           success: false,
-          error: 'Spoof attempt! Make sure to use a real face!',
+          error: 'Tentativa de fraude! Certifique-se de usar um rosto real!',
           errorCode: 'LIVENESS_CHECK_ERROR'
         };
         
         res.status(400).json(response);
         return;
       }
-      // Re-throw other errors to be handled by outer catch
+      // Re-lança outros erros para serem manipulados pelo catch externo
       throw error;
     }
 
-    console.log('[Capture] Recognition result:', {
+    debugLog('[Capture] Recognition result:', {
       userId,
       recognized: recognitionResult.recognized,
       confidence: recognitionResult.confidence,
@@ -161,29 +159,32 @@ export async function handleCapture(
       timestamp: new Date().toISOString()
     });
 
-    // Update failure tracking based on result
+    // Registra sucesso/falha simples
+    infoLog(`user_id: ${userId}, registration: false, recognized: ${recognitionResult.recognized}`);
+
+    // Atualiza rastreamento de falhas baseado no resultado
     if (recognitionResult.recognized) {
-      // Reset failures on success
+      // Reseta falhas em caso de sucesso
       const config = await configService.getConfiguration();
       if (config.failureResetOnSuccess) {
         await failureTrackingService.resetFailures(userId);
-        console.log('[Capture] Failure count reset for user:', { userId });
+        debugLog('[Capture] Failure count reset for user:', { userId });
       }
     } else {
-      // Record failure
+      // Registra falha
       await failureTrackingService.recordFailure(userId);
       const remaining = await failureTrackingService.getRemainingAttempts(userId);
-      console.log('[Capture] Failure recorded:', {
+      debugLog('[Capture] Failure recorded:', {
         userId,
         attemptsRemaining: remaining,
         timestamp: new Date().toISOString()
       });
     }
 
-    // Get remaining attempts
+    // Obtém tentativas restantes
     const attemptsRemaining = await failureTrackingService.getRemainingAttempts(userId);
 
-    // Return success response
+    // Retorna resposta de sucesso
     const response: CaptureResponse = {
       success: true,
       data: {
@@ -197,11 +198,11 @@ export async function handleCapture(
 
     res.status(200).json(response);
   } catch (error) {
-    // Requirement 5.4: Handle unexpected errors with proper logging
+    // Requisito 5.4: Manipular erros inesperados com logging adequado
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorStack = error instanceof Error ? error.stack : undefined;
     
-    console.error('[Capture] Unexpected error:', {
+    errorLog('[Capture] Unexpected error:', {
       userId: userId || 'unknown',
       error: errorMessage,
       stack: errorStack,
@@ -211,7 +212,7 @@ export async function handleCapture(
     
     const response: CaptureResponse = {
       success: false,
-      error: 'An unexpected error occurred while processing your request. Please try again.',
+      error: 'Ocorreu um erro inesperado ao processar sua solicitação. Por favor, tente novamente.',
       errorCode: 'SERVER_ERROR'
     };
     

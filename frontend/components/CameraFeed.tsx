@@ -1,10 +1,10 @@
 /**
- * CameraFeed Component
+ * Componente CameraFeed
  * 
- * Displays live camera feed with MediaStream rendering.
- * Handles camera permission requests, error messages, and stream lifecycle.
+ * Exibe feed de câmera ao vivo com renderização MediaStream.
+ * Manipula solicitações de permissão de câmera, mensagens de erro e ciclo de vida do stream.
  * 
- * Requirements: 1.1, 1.4, 1.5, 7.2, 7.3
+ * Requisitos: 1.1, 1.4, 1.5, 7.2, 7.3
  */
 
 'use client';
@@ -18,13 +18,15 @@ interface CameraFeedProps {
   onStreamReady: (stream: MediaStream) => void;
   onError: (error: Error) => void;
   facingMode: FacingMode;
+  userId?: string;  // Optional userId for debug features
 }
 
 export default function CameraFeed({
   stream,
   onStreamReady,
   onError,
-  facingMode
+  facingMode,
+  userId
 }: CameraFeedProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +34,7 @@ export default function CameraFeed({
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 1; // Allow one retry for transient errors
 
-  // Request camera access when component mounts or facingMode changes
+  // Solicita acesso à câmera quando o componente monta ou facingMode muda
   useEffect(() => {
     let mounted = true;
     let currentStream: MediaStream | null = null;
@@ -43,14 +45,14 @@ export default function CameraFeed({
         setIsLoading(true);
         setErrorMessage(null);
 
-        // Request camera access with specified facing mode
-        // Requirement 1.1: Display live camera feed
-        // Requirement 1.4: Request camera permissions
-        // Requirement 7.2: Toggle between front and back cameras
+        // Solicita acesso à câmera com modo de câmera especificado
+        // Requisito 1.1: Exibir feed de câmera ao vivo
+        // Requisito 1.4: Solicitar permissões de câmera
+        // Requisito 7.2: Alternar entre câmeras frontal e traseira
         const newStream = await cameraService.requestCameraAccess(facingMode);
         
         if (!mounted) {
-          // Component unmounted during async operation, cleanup
+          // Componente desmontado durante operação assíncrona, limpar
           cameraService.stopStream(newStream);
           return;
         }
@@ -150,17 +152,19 @@ export default function CameraFeed({
         >
           <div className="text-center">
             <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-white border-r-transparent mb-4"></div>
-            <p className="text-white text-lg">Requesting camera access...</p>
-            <p className="text-gray-400 text-sm mt-2">Please allow camera permissions when prompted</p>
-            <button 
-              onClick={() => {
-                console.log('[CameraFeed] Debug - isLoading:', isLoading, 'errorMessage:', errorMessage, 'videoRef:', videoRef.current, 'srcObject:', videoRef.current?.srcObject);
-                setIsLoading(false);
-              }}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
-            >
-              Force Show Video (Debug)
-            </button>
+            <p className="text-white text-lg">Solicitando acesso à câmera...</p>
+            <p className="text-gray-400 text-sm mt-2">Por favor, permita o acesso à câmera quando solicitado</p>
+            {userId === '999999' && (
+              <button 
+                onClick={() => {
+                  console.log('[CameraFeed] Debug - isLoading:', isLoading, 'errorMessage:', errorMessage, 'videoRef:', videoRef.current, 'srcObject:', videoRef.current?.srcObject);
+                  setIsLoading(false);
+                }}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
+              >
+                Force Show Video (Debug)
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -188,14 +192,14 @@ export default function CameraFeed({
                 />
               </svg>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Camera Access Error</h3>
+            <h3 className="text-xl font-semibold text-white mb-2">Erro de Acesso à Câmera</h3>
             <p className="text-gray-300 mb-4">{errorMessage}</p>
             <div className="text-sm text-gray-400 mb-4">
-              <p className="mb-2">To use this feature, please:</p>
+              <p className="mb-2">Para usar este recurso, por favor:</p>
               <ul className="list-disc list-inside text-left">
-                <li>Grant camera permissions in your browser settings</li>
-                <li>Ensure no other application is using the camera</li>
-                <li>Check that your device has a working camera</li>
+                <li>Permita o acesso à câmera nas configurações do navegador</li>
+                <li>Certifique-se de que nenhum outro aplicativo está usando a câmera</li>
+                <li>Verifique se seu dispositivo possui uma câmera funcionando</li>
               </ul>
             </div>
             <button
@@ -203,7 +207,7 @@ export default function CameraFeed({
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
               data-testid="retry-button"
             >
-              Reload Page
+              Recarregar Página
             </button>
           </div>
         </div>

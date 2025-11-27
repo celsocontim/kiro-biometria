@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Update Documentation",
+  "description": "When the user asks to \"Update the documentation\", this hook triggers an agent prompt to update all documentation files (steering files, spec files, README) based on the current state of the application",
+  "version": "1",
+  "when": {
+    "type": "userPrompt"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Update the current documentation (steering files, spec files, README) taking into account the current state of the application"
+  }
+}

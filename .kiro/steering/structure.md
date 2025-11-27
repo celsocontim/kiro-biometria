@@ -1,6 +1,6 @@
-# Project Structure
+# Estrutura do Projeto
 
-## Monorepo Layout
+## Layout do Monorepo
 
 ```
 .
@@ -15,7 +15,7 @@
 └── SETUP_VERIFICATION.md  # Setup and verification guide
 ```
 
-## Frontend Structure
+## Estrutura do Frontend
 
 ```
 frontend/
@@ -51,7 +51,7 @@ frontend/
 └── package.json          # Frontend dependencies
 ```
 
-## Backend Structure
+## Estrutura do Backend
 
 ```
 backend/
@@ -76,74 +76,74 @@ backend/
 └── package.json          # Backend dependencies
 ```
 
-## Architectural Patterns
+## Padrões Arquiteturais
 
 ### Frontend
 
-- **Component Organization**: Components are self-contained with co-located tests in `__tests__/` directories
-- **Service Layer**: Business logic separated into service classes (CameraService, APIClient, IframeMessenger)
-- **Type Safety**: Shared type definitions in `types/` directory, mirroring backend types
-- **Client Components**: All interactive components use `'use client'` directive
-- **Error Boundaries**: Top-level ErrorBoundary component catches React errors
-- **Custom Hooks**: Reusable hooks like `useViewportDimensions()` for responsive behavior
+- **Organização de Componentes**: Componentes são auto-contidos com testes co-localizados em diretórios `__tests__/`
+- **Camada de Serviço**: Lógica de negócio separada em classes de serviço (CameraService, APIClient, IframeMessenger)
+- **Segurança de Tipos**: Definições de tipos compartilhadas no diretório `types/`, espelhando tipos do backend
+- **Componentes Cliente**: Todos os componentes interativos usam diretiva `'use client'`
+- **Limites de Erro**: Componente ErrorBoundary de nível superior captura erros do React
+- **Hooks Personalizados**: Hooks reutilizáveis como `useViewportDimensions()` para comportamento responsivo
 
 ### Backend
 
-- **Service Layer**: Business logic encapsulated in service classes
-  - `ConfigurationService`: Manages app configuration with file watching
-  - `FailureTrackingService`: Tracks user attempts and lockouts
-  - `RecognitionService`: Handles facial recognition API calls
-- **Type Definitions**: Strongly typed request/response contracts
-- **Middleware**: Express middleware for CORS, body parsing, error handling
-- **Error Handling**: Centralized error handling with consistent response format
+- **Camada de Serviço**: Lógica de negócio encapsulada em classes de serviço
+  - `ConfigurationService`: Gerencia configuração da aplicação com observação de arquivo
+  - `FailureTrackingService`: Rastreia tentativas de usuário e bloqueios
+  - `RecognitionService`: Manipula chamadas da API de reconhecimento facial
+- **Definições de Tipos**: Contratos de requisição/resposta fortemente tipados
+- **Middleware**: Middleware Express para CORS, análise de corpo, tratamento de erros
+- **Tratamento de Erros**: Tratamento de erros centralizado com formato de resposta consistente
 
-## Naming Conventions
+## Convenções de Nomenclatura
 
-### Files
-- Components: PascalCase (e.g., `CameraFeed.tsx`)
-- Services: PascalCase (e.g., `CameraService.ts`)
-- Types: camelCase with `.types.ts` suffix (e.g., `api.types.ts`)
-- Tests: Same name as source with `.test.ts` or `.test.tsx` suffix
-- Config files: kebab-case or standard names (e.g., `jest.config.js`)
+### Arquivos
+- Componentes: PascalCase (ex: `CameraFeed.tsx`)
+- Serviços: PascalCase (ex: `CameraService.ts`)
+- Tipos: camelCase com sufixo `.types.ts` (ex: `api.types.ts`)
+- Testes: Mesmo nome do fonte com sufixo `.test.ts` ou `.test.tsx`
+- Arquivos de config: kebab-case ou nomes padrão (ex: `jest.config.js`)
 
-### Code
-- Components: PascalCase (e.g., `CameraFeed`)
-- Functions/methods: camelCase (e.g., `requestCameraAccess`)
-- Interfaces/Types: PascalCase (e.g., `CaptureRequest`)
-- Constants: UPPER_SNAKE_CASE (e.g., `MAX_FAILURE_ATTEMPTS`)
-- Private methods: camelCase with underscore prefix (e.g., `_handleError`)
+### Código
+- Componentes: PascalCase (ex: `CameraFeed`)
+- Funções/métodos: camelCase (ex: `requestCameraAccess`)
+- Interfaces/Tipos: PascalCase (ex: `CaptureRequest`)
+- Constantes: UPPER_SNAKE_CASE (ex: `MAX_FAILURE_ATTEMPTS`)
+- Métodos privados: camelCase com prefixo underscore (ex: `_handleError`)
 
-## Test Organization
+## Organização de Testes
 
-- Tests are co-located with source files in `__tests__/` directories
-- Test files mirror the structure of source files
-- Property-based tests use fast-check library
-- Unit tests for services, integration tests for components
-- Test naming: `describe('ComponentName', () => { it('should...', () => {}) })`
+- Testes são co-localizados com arquivos fonte em diretórios `__tests__/`
+- Arquivos de teste espelham a estrutura dos arquivos fonte
+- Testes baseados em propriedades usam biblioteca fast-check
+- Testes unitários para serviços, testes de integração para componentes
+- Nomenclatura de testes: `describe('ComponentName', () => { it('should...', () => {}) })`
 
-## Documentation
+## Documentação
 
-- Inline JSDoc comments for complex functions and services
-- Component props documented with TypeScript interfaces
-- Requirements referenced in comments (e.g., `// Requirement 1.1: Display live camera feed`)
-- Comprehensive guides in root-level markdown files:
-  - `ERROR_HANDLING.md`: Error handling patterns and strategies
-  - `PERFORMANCE_OPTIMIZATIONS.md`: Performance implementation details
-  - `SETUP_VERIFICATION.md`: Setup and verification steps
+- Comentários JSDoc inline para funções e serviços complexos
+- Props de componentes documentadas com interfaces TypeScript
+- Requisitos referenciados em comentários (ex: `// Requisito 1.1: Exibir feed de câmera ao vivo`)
+- Guias abrangentes em arquivos markdown no nível raiz:
+  - `ERROR_HANDLING.md`: Padrões e estratégias de tratamento de erros
+  - `PERFORMANCE_OPTIMIZATIONS.md`: Detalhes de implementação de performance
+  - `SETUP_VERIFICATION.md`: Etapas de configuração e verificação
 
-## Configuration Files
+## Arquivos de Configuração
 
-- **TypeScript**: Strict mode enabled, path aliases configured
-- **Jest**: Separate configs for frontend (jsdom) and backend (node)
-- **Next.js**: CSP headers for iframe embedding, Tailwind integration
-- **Tailwind**: Custom breakpoints for responsive design
-- **ESLint**: Next.js recommended rules (frontend only)
+- **TypeScript**: Modo strict habilitado, aliases de caminho configurados
+- **Jest**: Configurações separadas para frontend (jsdom) e backend (node)
+- **Next.js**: Cabeçalhos CSP para incorporação em iframe, integração Tailwind
+- **Tailwind**: Breakpoints personalizados para design responsivo
+- **ESLint**: Regras recomendadas do Next.js (apenas frontend)
 
-## Key Principles
+## Princípios Chave
 
-1. **Separation of Concerns**: UI components, business logic (services), and types are clearly separated
-2. **Type Safety**: Strict TypeScript with shared type definitions between frontend and backend
-3. **Testability**: Services and components designed for easy testing with co-located tests
-4. **Error Handling**: Comprehensive error handling at all layers with user-friendly messages
-5. **Performance**: Optimizations for image compression, network efficiency, and UI responsiveness
-6. **Documentation**: Code is self-documenting with clear naming and inline comments
+1. **Separação de Responsabilidades**: Componentes de UI, lógica de negócio (serviços) e tipos são claramente separados
+2. **Segurança de Tipos**: TypeScript strict com definições de tipos compartilhadas entre frontend e backend
+3. **Testabilidade**: Serviços e componentes projetados para testes fáceis com testes co-localizados
+4. **Tratamento de Erros**: Tratamento abrangente de erros em todas as camadas com mensagens amigáveis ao usuário
+5. **Performance**: Otimizações para compressão de imagem, eficiência de rede e responsividade da UI
+6. **Documentação**: Código é auto-documentado com nomenclatura clara e comentários inline

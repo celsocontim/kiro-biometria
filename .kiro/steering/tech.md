@@ -1,38 +1,38 @@
-# Technology Stack
+# Stack Tecnológico
 
 ## Frontend
 
 - **Framework**: Next.js 14+ (React 18+)
-- **Language**: TypeScript 5.0+ with strict mode enabled
-- **Styling**: Tailwind CSS 3.4+
-- **Testing**: Jest 30+ with React Testing Library and fast-check for property-based testing
-- **Build Tool**: Next.js built-in bundler
-- **Node Version**: 18.17+ required
+- **Linguagem**: TypeScript 5.0+ com modo strict habilitado
+- **Estilização**: Tailwind CSS 3.4+
+- **Testes**: Jest 30+ com React Testing Library e fast-check para testes baseados em propriedades
+- **Ferramenta de Build**: Bundler integrado do Next.js
+- **Versão do Node**: 18.17+ necessária
 
-### Frontend Configuration
+### Configuração do Frontend
 
-- Path alias: `@/*` maps to project root
-- Module resolution: bundler
-- JSX: preserve (handled by Next.js)
+- Alias de caminho: `@/*` mapeia para raiz do projeto
+- Resolução de módulo: bundler
+- JSX: preserve (manipulado pelo Next.js)
 - Target: ES2017
 
 ## Backend
 
 - **Runtime**: Node.js 18+
 - **Framework**: Express 4.18+
-- **Language**: TypeScript 5.0+ with strict mode enabled
-- **Testing**: Jest 30+ with ts-jest and fast-check
-- **Dev Server**: ts-node-dev with auto-restart
-- **Module System**: CommonJS
+- **Linguagem**: TypeScript 5.0+ com modo strict habilitado
+- **Testes**: Jest 30+ com ts-jest e fast-check
+- **Servidor Dev**: ts-node-dev com auto-restart
+- **Sistema de Módulos**: CommonJS
 
-### Backend Configuration
+### Configuração do Backend
 
 - Target: ES2020
-- Output directory: `./dist`
-- Source maps and declarations enabled
-- Module resolution: node
+- Diretório de saída: `./dist`
+- Source maps e declarações habilitadas
+- Resolução de módulo: node
 
-## Key Dependencies
+## Dependências Principais
 
 ### Frontend
 - `next`: ^14.2.0
@@ -45,19 +45,19 @@
 - `cors`: ^2.8.5
 - `dotenv`: ^16.4.0
 
-### Shared Dev Dependencies
+### Dependências de Dev Compartilhadas
 - `typescript`: ^5.0.0
 - `jest`: ^30.2.0
-- `fast-check`: ^4.3.0 (property-based testing)
+- `fast-check`: ^4.3.0 (testes baseados em propriedades)
 
-## Common Commands
+## Comandos Comuns
 
-### Root Level
+### Nível Raiz
 ```bash
-# Frontend development
+# Desenvolvimento frontend
 npm run dev:frontend
 
-# Backend development
+# Desenvolvimento backend
 npm run dev:backend
 
 # Build frontend
@@ -66,37 +66,37 @@ npm run build:frontend
 # Build backend
 npm run build:backend
 
-# Start production frontend
+# Iniciar frontend de produção
 npm run start:frontend
 
-# Start production backend
+# Iniciar backend de produção
 npm run start:backend
 ```
 
 ### Frontend (cd frontend)
 ```bash
-# Development server (http://localhost:3000)
+# Servidor de desenvolvimento (http://localhost:3000)
 npm run dev
 
-# Production build
+# Build de produção
 npm run build
 
-# Start production server
+# Iniciar servidor de produção
 npm start
 
-# Run tests
+# Executar testes
 npm test
 
-# Run tests in watch mode
+# Executar testes em modo watch
 npm run test:watch
 
-# Lint code
+# Lint do código
 npm run lint
 ```
 
 ### Backend (cd backend)
 ```bash
-# Development server with auto-restart (http://localhost:3001)
+# Development server with auto-restart (http://localhost:4000)
 npm run dev
 
 # Production build (outputs to dist/)
@@ -116,24 +116,28 @@ npm run test:watch
 
 ### Frontend (.env.local)
 ```
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
+NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
 ```
 
 ### Backend (.env)
 ```
-PORT=3001
+PORT=4000
 FRONTEND_URL=http://localhost:3000
-MAX_FAILURE_ATTEMPTS=5
+MAX_FAILURE_ATTEMPTS=0
+RECOGNITION_THRESHOLD=70
+USE_MOCK=false
+FACE_API_URL=your-face-api-url-here
+FACE_API_KEY=your-face-api-key-here
 ```
 
-## Build Output
+## Saída de Build
 
-- **Frontend**: `.next/` directory (Next.js build output)
-- **Backend**: `dist/` directory (compiled JavaScript)
+- **Frontend**: diretório `.next/` (saída de build do Next.js)
+- **Backend**: diretório `dist/` (JavaScript compilado)
 
-## Testing
+## Testes
 
-- Test files located in `__tests__/` directories adjacent to source files
-- Test file naming: `*.test.ts` or `*.test.tsx`
-- Run tests with `--runInBand` flag to avoid concurrency issues
-- Property-based testing with fast-check for robust validation
+- Arquivos de teste localizados em diretórios `__tests__/` adjacentes aos arquivos fonte
+- Nomenclatura de arquivo de teste: `*.test.ts` ou `*.test.tsx`
+- Execute testes com flag `--runInBand` para evitar problemas de concorrência
+- Testes baseados em propriedades com fast-check para validação robusta

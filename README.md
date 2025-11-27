@@ -1,85 +1,85 @@
-# Facial Recognition Capture Application
+# Aplicação de Captura de Reconhecimento Facial
 
-A full-stack web application for capturing facial images with real-time liveness detection and user identification. Features live camera feed, responsive design, and configurable recognition parameters with integration to facial recognition APIs.
+Uma aplicação web full-stack para capturar imagens faciais com detecção de vivacidade em tempo real e identificação de usuário. Apresenta feed de câmera ao vivo, design responsivo e parâmetros de reconhecimento configuráveis com integração a APIs de reconhecimento facial.
 
-## Features
+## Funcionalidades
 
-- 📷 Full-screen live camera feed with face positioning guide
-- 🎯 Real-time liveness detection (anti-spoofing)
-- 👤 User identification with confidence scoring
-- 🔄 Configurable attempt tracking (unlimited or limited)
-- 📱 Fully responsive design (mobile, tablet, desktop)
-- 🔌 Iframe embedding support with PostMessage API
-- ⚙️ Runtime configuration without deployment
-- 🧪 Mock mode for development/testing
+- 📷 Feed de câmera ao vivo em tela cheia com guia de posicionamento facial
+- 🎯 Detecção de vivacidade em tempo real (anti-fraude)
+- 👤 Identificação de usuário com pontuação de confiança
+- 🔄 Rastreamento de tentativas configurável (ilimitado ou limitado)
+- 📱 Design totalmente responsivo (móvel, tablet, desktop)
+- 🔌 Suporte a incorporação em iframe com API PostMessage
+- ⚙️ Configuração em tempo de execução sem implantação
+- 🧪 Modo mock para desenvolvimento/testes
 
-## Project Structure
+## Estrutura do Projeto
 
 ```
 .
-├── frontend/              # Next.js 14 frontend application
-│   ├── app/              # Next.js app directory (pages)
-│   ├── components/       # React components
+├── frontend/              # Aplicação frontend Next.js 14
+│   ├── app/              # Diretório app do Next.js (páginas)
+│   ├── components/       # Componentes React
 │   │   ├── CameraFeed.tsx
 │   │   ├── FaceOvalGuide.tsx
 │   │   ├── CaptureButton.tsx
 │   │   ├── FeedbackMessage.tsx
 │   │   └── SuccessScreen.tsx
-│   ├── services/         # Frontend services
+│   ├── services/         # Serviços frontend
 │   │   ├── CameraService.ts
 │   │   ├── APIClient.ts
 │   │   └── IframeMessenger.ts
-│   └── types/            # TypeScript type definitions
+│   └── types/            # Definições de tipos TypeScript
 │
-├── backend/              # Express backend API
+├── backend/              # API backend Express
 │   ├── src/
-│   │   ├── index.ts      # Express app entry point
-│   │   ├── routes/       # API route handlers
-│   │   └── services/     # Business logic services
+│   │   ├── index.ts      # Ponto de entrada da aplicação Express
+│   │   ├── routes/       # Manipuladores de rotas da API
+│   │   └── services/     # Serviços de lógica de negócio
 │   │       ├── ConfigurationService.ts
 │   │       ├── FailureTrackingService.ts
 │   │       └── RecognitionService.ts
-│   └── types/            # TypeScript type definitions
+│   └── types/            # Definições de tipos TypeScript
 │
-└── .kiro/                # Kiro IDE configuration and specs
+└── .kiro/                # Configuração e especificações do Kiro IDE
 ```
 
-## Prerequisites
+## Pré-requisitos
 
-- Node.js 18.17+ (required for Next.js 14)
-- npm or yarn
-- Modern browser with camera support
+- Node.js 18.17+ (necessário para Next.js 14)
+- npm ou yarn
+- Navegador moderno com suporte a câmera
 
-## Quick Start
+## Início Rápido
 
-### 1. Install Dependencies
+### 1. Instalar Dependências
 
 ```bash
-# Install frontend dependencies
+# Instalar dependências do frontend
 cd frontend
 npm install
 
-# Install backend dependencies
+# Instalar dependências do backend
 cd ../backend
 npm install
 ```
 
-### 2. Configure Environment
+### 2. Configurar Ambiente
 
 **Backend** (`backend/.env`):
 ```bash
 cp backend/.env.example backend/.env
 ```
 
-Edit `backend/.env`:
+Editar `backend/.env`:
 ```env
 PORT=4000
 FRONTEND_URL=http://localhost:3000
 MAX_FAILURE_ATTEMPTS=0
 RECOGNITION_THRESHOLD=70
 USE_MOCK=false
-FACE_API_URL=your-face-api-url-here
-FACE_API_KEY=your-face-api-key-here
+FACE_API_URL=sua-url-da-api-facial-aqui
+FACE_API_KEY=sua-chave-da-api-facial-aqui
 ```
 
 **Frontend** (`frontend/.env.local`):
@@ -87,12 +87,12 @@ FACE_API_KEY=your-face-api-key-here
 cp frontend/.env.local.example frontend/.env.local
 ```
 
-Edit `frontend/.env.local`:
+Editar `frontend/.env.local`:
 ```env
 NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
 ```
 
-### 3. Run Development Servers
+### 3. Executar Servidores de Desenvolvimento
 
 **Terminal 1 - Backend:**
 ```bash
@@ -106,43 +106,76 @@ cd frontend
 npm run dev
 ```
 
-### 4. Access the Application
+### 4. Acessar a Aplicação
 
 - Frontend: http://localhost:3000
-- Backend API: http://localhost:4000
-- With userId parameter: http://localhost:3000?userId=YOUR_USER_ID
+- API Backend: http://localhost:4000
+- Com parâmetro userId: http://localhost:3000?userId=SEU_ID_DE_USUARIO
 
-## Configuration Parameters
+## Parâmetros de Configuração
 
-### Backend Environment Variables
+### Variáveis de Ambiente do Backend
 
-| Variable | Default | Description |
+| Variável | Padrão | Descrição |
 |----------|---------|-------------|
-| `PORT` | 4000 | Backend server port |
-| `FRONTEND_URL` | http://localhost:3000 | Frontend URL for CORS |
-| `MAX_FAILURE_ATTEMPTS` | 0 | Max failed attempts before lockout (0 = unlimited) |
-| `RECOGNITION_THRESHOLD` | 70 | Confidence threshold (0-100) for recognition |
-| `USE_MOCK` | false | Use mock recognition instead of real API |
-| `FACE_API_URL` | - | Facial recognition API endpoint URL |
-| `FACE_API_KEY` | - | Facial recognition API authentication key |
+| `PORT` | 4000 | Porta do servidor backend |
+| `FRONTEND_URL` | http://localhost:3000 | URL do frontend para CORS |
+| `MAX_FAILURE_ATTEMPTS` | 0 | Máximo de tentativas falhadas antes do bloqueio (0 = ilimitado) |
+| `RECOGNITION_THRESHOLD` | 70 | Limiar de confiança (0-100) para reconhecimento |
+| `USE_MOCK` | false | Usar reconhecimento mock ao invés da API real |
+| `FACE_API_URL` | - | URL do endpoint da API de reconhecimento facial |
+| `FACE_API_KEY` | - | Chave de autenticação da API de reconhecimento facial |
 
-### Configuration Behavior
+### Comportamento da Configuração
 
-- **MAX_FAILURE_ATTEMPTS = 0**: Unlimited attempts, no user lockout, attempts shown as 99
-- **RECOGNITION_THRESHOLD**: Confidence scores >= threshold are "recognized"
-- **USE_MOCK = true**: Uses mock API with random confidence scores
-- **USE_MOCK = false**: Uses real facial recognition API
-- **Auto-reload**: Configuration reloads every 60 seconds without restart
+- **MAX_FAILURE_ATTEMPTS = 0**: Tentativas ilimitadas, sem bloqueio de usuário, tentativas mostradas como 99
+- **RECOGNITION_THRESHOLD**: Pontuações de confiança >= limiar são "reconhecidas"
+- **USE_MOCK = true**: Usa API mock com pontuações de confiança aleatórias
+- **USE_MOCK = false**: Usa API de reconhecimento facial real
+- **Auto-reload**: Configuração recarrega a cada 60 segundos sem reiniciar
 
-## API Endpoints
+## Endpoints da API
 
 ### Backend
 
-- `GET /health` - Health check
-- `GET /api/config` - Get current configuration (debug)
-- `POST /api/capture` - Process facial recognition capture
+- `GET /health` - Verificação de saúde
+- `GET /api/config` - Obter configuração atual (debug)
+- `POST /api/user` - Verificar se usuário está cadastrado
+- `POST /api/register` - Cadastrar novo usuário com dados faciais
+- `POST /api/capture` - Processar identificação de reconhecimento facial
 
-**Capture Request:**
+**Solicitação de Verificação de Usuário:**
+```json
+{
+  "user_id": "string"
+}
+```
+
+**Resposta de Verificação de Usuário:**
+```json
+{
+  "registered": true,
+  "timestamp": "2025-11-27T..."
+}
+```
+
+**Solicitação de Cadastro:**
+```json
+{
+  "user_id": "string",
+  "imageData": "data:image/jpeg;base64,..."
+}
+```
+
+**Resposta de Cadastro (Sucesso):**
+```json
+{
+  "success": true,
+  "timestamp": "2025-11-27T..."
+}
+```
+
+**Solicitação de Captura:**
 ```json
 {
   "userId": "string",
@@ -150,7 +183,7 @@ npm run dev
 }
 ```
 
-**Capture Response (Success):**
+**Resposta de Captura (Sucesso):**
 ```json
 {
   "success": true,
@@ -158,158 +191,177 @@ npm run dev
     "recognized": true,
     "confidence": 95,
     "userId": "347313",
-    "timestamp": "2025-11-26T...",
+    "timestamp": "2025-11-27T...",
     "attemptsRemaining": 99
   }
 }
 ```
 
-**Capture Response (Spoof Detected):**
+**Resposta de Captura (Fraude Detectada):**
 ```json
 {
   "success": false,
-  "error": "Spoof attempt! Make sure to use a real face!",
+  "error": "Tentativa de fraude! Certifique-se de usar um rosto real!",
   "errorCode": "LIVENESS_CHECK_ERROR"
 }
 ```
 
-## Recognition Flow
+## Fluxo de Reconhecimento
 
-The application uses a two-step verification process:
+A aplicação suporta tanto cadastro quanto identificação de usuário com detecção automática:
 
-### Step 1: Liveness Detection (Extract)
-- Captures image from camera
-- Sends to facial recognition API for liveness check
-- Detects spoofing attempts (photos, videos, masks)
-- Extracts facial template if liveness check passes
+### No Carregamento da Página: Verificação de Cadastro
+1. Frontend chama `POST /api/user` com user_id
+2. Backend consulta API de reconhecimento facial para verificar se usuário existe
+3. Resultado armazenado no estado local (`isRegistered`)
 
-### Step 2: User Identification (Identify)
-- Uses facial template from Step 1
-- Matches against registered users
-- Verifies user ID matches expected ID
-- Returns confidence score
+### Quando a Foto é Capturada
 
-**Success Criteria:**
-- ✅ Liveness check passes (not spoofed)
-- ✅ User ID matches expected ID
-- ✅ Confidence score >= threshold
+**Para Usuários Não Cadastrados (Fluxo de Cadastro):**
+1. Captura imagem da câmera
+2. Chama `POST /api/register` com user_id e imagem
+3. Backend cria usuário na API de reconhecimento facial
+4. Backend adiciona credencial facial (template) ao usuário com detecção de vivacidade
+5. Se fraude detectada: Usuário é deletado, erro retornado ao frontend
+6. Em caso de sucesso: Mostra tela de sucesso e notifica janela pai
+7. Em caso de falha: Mensagem de erro mostrada, usuário pode tentar novamente
 
-## Development
+**Para Usuários Cadastrados (Fluxo de Identificação):**
+1. Captura imagem da câmera
+2. Chama `POST /api/capture` com user_id e imagem
+3. Backend realiza verificação em duas etapas via API de reconhecimento facial:
+   - **Etapa 1: Detecção de Vivacidade (Extract)** - Detecta tentativas de fraude (fotos, vídeos, máscaras)
+   - **Etapa 2: Identificação de Usuário (Identify)** - Compara rosto com usuário cadastrado
+4. Se fraude detectada: Erro retornado ao frontend
+5. Em caso de sucesso: Mostra tela de sucesso e notifica janela pai
+6. Em caso de falha: Usuário pode tentar novamente (até máximo de tentativas se configurado)
 
-### Frontend Development
+**Critérios de Sucesso:**
+- ✅ Cadastro: Usuário criado e credencial adicionada com sucesso (verificação de vivacidade passa)
+- ✅ Identificação: Verificação de vivacidade passa + ID do usuário corresponde + Confiança >= limiar
+
+**Detecção de Fraude:**
+- Tanto cadastro quanto identificação incluem detecção de vivacidade
+- Previne fotos, vídeos, máscaras e outras tentativas de fraude
+- Mensagens de erro claras orientam usuários a usar rostos reais
+- Registrado para monitoramento de segurança
+
+## Desenvolvimento
+
+### Desenvolvimento Frontend
 
 ```bash
 cd frontend
-npm run dev      # Development server (port 3000)
-npm run build    # Production build
+npm run dev      # Servidor de desenvolvimento (porta 3000)
+npm run build    # Build de produção
 npm run lint     # ESLint
-npm test         # Run tests
+npm test         # Executar testes
 ```
 
-### Backend Development
+### Desenvolvimento Backend
 
 ```bash
 cd backend
-npm run dev      # Development server (port 4000)
-npm run build    # Production build
-npm test         # Run tests
+npm run dev      # Servidor de desenvolvimento (porta 4000)
+npm run build    # Build de produção
+npm test         # Executar testes
 ```
 
-## Features in Detail
+## Funcionalidades em Detalhe
 
-### Full-Screen Camera Feed
-- Camera feed fills entire viewport
-- Responsive oval guide for face positioning
-- User ID displayed in upper-left corner
-- Dynamic text sizing based on screen size
+### Feed de Câmera em Tela Cheia
+- Feed da câmera preenche toda a viewport
+- Guia oval responsiva para posicionamento facial
+- ID do usuário exibido no canto superior esquerdo
+- Dimensionamento dinâmico de texto baseado no tamanho da tela
 
-### Liveness Detection
-- Real-time spoof detection
-- Prevents photos, videos, and masks
-- Clear error messages for spoof attempts
-- Logged warnings for security monitoring
+### Detecção de Vivacidade
+- Detecção de fraude em tempo real
+- Previne fotos, vídeos e máscaras
+- Mensagens de erro claras para tentativas de fraude
+- Avisos registrados para monitoramento de segurança
 
-### Feedback System
-- Success messages auto-dismiss after 3 seconds
-- Error messages auto-dismiss after 10 seconds
-- Manual dismiss option available
-- Attempt counter (when enabled)
+### Sistema de Feedback
+- Mensagens de sucesso dispensadas automaticamente após 3 segundos
+- Mensagens de erro dispensadas automaticamente após 10 segundos
+- Opção de dispensa manual disponível
+- Contador de tentativas (quando habilitado)
 
-### Responsive Design
-- Mobile: Full-screen with touch-optimized controls
-- Tablet: Full-screen with larger buttons
-- Desktop: Full-screen with keyboard support
+### Design Responsivo
+- Móvel: Tela cheia com controles otimizados para toque
+- Tablet: Tela cheia com botões maiores
+- Desktop: Tela cheia com suporte a teclado
 
-## Iframe Integration
+## Integração com Iframe
 
-The application supports iframe embedding with PostMessage communication:
+A aplicação suporta incorporação em iframe com comunicação PostMessage:
 
 ```html
-<iframe src="http://localhost:3000?userId=USER_ID" />
+<iframe src="http://localhost:3000?userId=ID_DO_USUARIO" />
 ```
 
-**PostMessage Events:**
-- `facial-recognition-success` - Recognition succeeded
-- `facial-recognition-failure` - Max attempts exceeded
+**Eventos PostMessage:**
+- `facial-recognition-success` - Reconhecimento bem-sucedido
+- `facial-recognition-failure` - Tentativas máximas excedidas
 
-## Browser Support
+## Suporte a Navegadores
 
 - Chrome 90+
 - Firefox 88+
 - Safari 14+
 - Edge 90+
 
-**Required Browser Features:**
-- MediaDevices API (camera access)
-- ES2017+ JavaScript
-- CSS Grid and Flexbox
+**Recursos de Navegador Necessários:**
+- API MediaDevices (acesso à câmera)
+- JavaScript ES2017+
+- CSS Grid e Flexbox
 
-## Troubleshooting
+## Solução de Problemas
 
-### Camera Not Working
+### Câmera Não Funciona
 
-1. Ensure you're using HTTPS or localhost
-2. Grant camera permissions in browser
-3. Check if another app is using the camera
-4. Verify browser supports MediaDevices API
+1. Certifique-se de estar usando HTTPS ou localhost
+2. Conceda permissões de câmera no navegador
+3. Verifique se outro aplicativo está usando a câmera
+4. Verifique se o navegador suporta API MediaDevices
 
-### CORS Errors
+### Erros de CORS
 
-1. Check `FRONTEND_URL` in backend `.env`
-2. Ensure frontend is running on the configured port
-3. Clear browser cache
+1. Verifique `FRONTEND_URL` no `.env` do backend
+2. Certifique-se de que o frontend está rodando na porta configurada
+3. Limpe o cache do navegador
 
-### Backend Not Starting
+### Backend Não Inicia
 
-1. Verify Node.js version >= 18.17
-2. Check if port 4000 is available
-3. Ensure `.env` file exists with valid values
+1. Verifique versão do Node.js >= 18.17
+2. Verifique se a porta 4000 está disponível
+3. Certifique-se de que o arquivo `.env` existe com valores válidos
 
-### Spoof Detection Issues
+### Problemas de Detecção de Fraude
 
-1. Ensure `USE_MOCK=false` in backend `.env`
-2. Verify facial recognition API credentials are configured
-3. Check backend console for "Spoof attempt!" warnings
-4. Ensure proper lighting for camera
+1. Certifique-se de que `USE_MOCK=false` no `.env` do backend
+2. Verifique se as credenciais da API de reconhecimento facial estão configuradas
+3. Verifique o console do backend para avisos "Spoof attempt!"
+4. Certifique-se de iluminação adequada para a câmera
 
-## Security Features
+## Recursos de Segurança
 
-- Liveness detection prevents spoofing
-- Configurable attempt limits
-- User lockout after max attempts
-- Secure HTTPS requirement for camera access
-- CORS protection
-- Request validation
-- Error logging for security monitoring
+- Detecção de vivacidade previne fraudes
+- Limites de tentativas configuráveis
+- Bloqueio de usuário após tentativas máximas
+- Requisito de HTTPS seguro para acesso à câmera
+- Proteção CORS
+- Validação de requisições
+- Registro de erros para monitoramento de segurança
 
-## Documentation
+## Documentação
 
-- [Error Handling Guide](ERROR_HANDLING.md)
-- [Performance Optimizations](PERFORMANCE_OPTIMIZATIONS.md)
-- [Setup Verification](SETUP_VERIFICATION.md)
-- [Requirements Specification](.kiro/specs/facial-recognition-capture/requirements.md)
-- [Design Document](.kiro/specs/facial-recognition-capture/design.md)
+- [Guia de Tratamento de Erros](ERROR_HANDLING.md)
+- [Otimizações de Performance](PERFORMANCE_OPTIMIZATIONS.md)
+- [Verificação de Configuração](SETUP_VERIFICATION.md)
+- [Especificação de Requisitos](.kiro/specs/facial-recognition-capture/requirements.md)
+- [Documento de Design](.kiro/specs/facial-recognition-capture/design.md)
 
-## License
+## Licença
 
 MIT

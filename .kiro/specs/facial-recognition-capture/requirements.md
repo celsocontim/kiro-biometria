@@ -146,3 +146,15 @@ This document specifies the requirements for a facial recognition capture applic
 2. WHEN the Backend Service processes requests THEN the Backend Service SHALL not contain UI rendering logic
 3. WHEN the Frontend Application renders UI THEN the Frontend Application SHALL not contain direct Recognition API communication logic
 4. WHEN API endpoints are defined THEN the Backend Service SHALL expose RESTful endpoints with clear request and response schemas
+
+### Requirement 12
+
+**User Story:** As a system administrator, I want to automatically register new users on their first capture, so that users can be onboarded seamlessly without manual intervention.
+
+#### Acceptance Criteria
+
+1. WHEN the Capture Screen loads THEN the Frontend Application SHALL check if the user is registered via the Backend Service
+2. WHEN the Backend Service receives a registration check request THEN the Backend Service SHALL query the Recognition API to determine if the user exists
+3. WHEN a user captures an image and is not registered THEN the Backend Service SHALL register the user with the Recognition API using the captured image
+4. WHEN a user is successfully registered THEN the Frontend Application SHALL display the success screen
+5. WHEN a user captures an image and is already registered THEN the Backend Service SHALL perform identification instead of registration

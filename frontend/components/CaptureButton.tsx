@@ -50,9 +50,9 @@ export default function CaptureButton({
           min-w-[160px] md:min-w-[200px] lg:min-w-[240px]
         `}
         data-testid="capture-button"
-        aria-label={isLoading ? 'Tirando foto...' : 'Tirar foto'}
+        aria-label={isLoading ? 'Capturando foto...' : 'Capturar foto'}
       >
-        {isLoading ? 'Processando...' : 'Tirar foto'}
+        {isLoading ? 'Processando...' : 'Capturar'}
       </button>
     </div>
   );

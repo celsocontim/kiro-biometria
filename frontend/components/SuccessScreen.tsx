@@ -1,10 +1,10 @@
 /**
- * SuccessScreen Component
+ * Componente SuccessScreen
  * 
- * Displays success confirmation UI after successful facial recognition.
- * Hides camera feed and controls, prevents further capture attempts.
+ * Exibe UI de confirmação de sucesso após reconhecimento facial bem-sucedido.
+ * Oculta feed da câmera e controles, previne tentativas adicionais de captura.
  * 
- * Requirements: 9.1, 9.2, 9.3, 9.4, 9.5
+ * Requisitos: 9.1, 9.2, 9.3, 9.4, 9.5
  */
 
 'use client';
@@ -14,20 +14,22 @@ import React from 'react';
 interface SuccessScreenProps {
   userId: string;
   onComplete?: () => void;
+  isRegistration?: boolean;  // true if this is a registration success, false for identification
 }
 
 export default function SuccessScreen({
   userId,
-  onComplete
+  onComplete,
+  isRegistration = false
 }: SuccessScreenProps) {
-  // Requirement 9.1: Display success screen on successful recognition
-  // Requirement 9.2: Show confirmation message
-  // Requirement 9.3: Hide camera feed and controls
-  // Requirement 9.4: Provide visual feedback indicating completion
-  // Requirement 9.5: Prevent further capture attempts
+  // Requisito 9.1: Exibir tela de sucesso em reconhecimento bem-sucedido
+  // Requisito 9.2: Mostrar mensagem de confirmação
+  // Requisito 9.3: Ocultar feed da câmera e controles
+  // Requisito 9.4: Fornecer feedback visual indicando conclusão
+  // Requisito 9.5: Prevenir tentativas adicionais de captura
 
   React.useEffect(() => {
-    // Call onComplete callback if provided
+    // Chama callback onComplete se fornecido
     if (onComplete) {
       onComplete();
     }
@@ -69,21 +71,23 @@ export default function SuccessScreen({
           className="text-2xl md:text-3xl lg:text-4xl font-bold text-green-800 mb-4"
           data-testid="success-title"
         >
-          Recognition Successful!
+          {isRegistration ? 'Cadastro Realizado!' : 'Reconhecimento Bem-Sucedido!'}
         </h1>
 
         <p 
           className="text-base md:text-lg lg:text-xl text-green-700 mb-2"
           data-testid="success-message"
         >
-          Your face has been successfully recognized.
+          {isRegistration 
+            ? 'Seu rosto foi cadastrado com sucesso.' 
+            : 'Seu rosto foi reconhecido com sucesso.'}
         </p>
 
         <p 
           className="text-sm md:text-base text-green-600 break-all"
           data-testid="success-user-id"
         >
-          User ID: {userId}
+          ID do Usuário: {userId}
         </p>
 
         {/* Additional visual feedback */}

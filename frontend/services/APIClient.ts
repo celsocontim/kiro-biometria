@@ -1,14 +1,14 @@
 /**
  * APIClient
  * 
- * Handles communication with the backend service.
- * Provides methods to:
- * - Submit capture requests to backend
- * - Handle timeouts and errors
- * - Parse and return recognition responses
+ * Manipula comunicação com o serviço backend.
+ * Fornece métodos para:
+ * - Enviar solicitações de captura para backend
+ * - Manipular timeouts e erros
+ * - Analisar e retornar respostas de reconhecimento
  * 
- * Requirements: 2.3, 11.1
- * Performance: Browser automatically handles connection pooling via HTTP/2 and keep-alive
+ * Requisitos: 2.3, 11.1
+ * Performance: Navegador manipula automaticamente pooling de conexão via HTTP/2 e keep-alive
  */
 
 import { CaptureRequest, CaptureResponse } from '../types/api.types';
@@ -19,15 +19,15 @@ export class APIClient {
   private readonly maxRetries: number;
 
   /**
-   * Create a new APIClient instance
+   * Cria uma nova instância de APIClient
    * 
-   * @param backendUrl - Base URL of the backend service
-   * @param timeout - Request timeout in milliseconds (default: 30000)
-   * @param maxRetries - Maximum number of retry attempts for network errors (default: 2)
+   * @param backendUrl - URL base do serviço backend
+   * @param timeout - Timeout de requisição em milissegundos (padrão: 30000)
+   * @param maxRetries - Número máximo de tentativas de retry para erros de rede (padrão: 2)
    * 
-   * Note: Modern browsers automatically handle connection pooling and reuse
-   * for fetch() requests via HTTP/2 multiplexing and HTTP/1.1 keep-alive.
-   * No additional configuration needed on the client side.
+   * Nota: Navegadores modernos manipulam automaticamente pooling e reutilização de conexão
+   * para requisições fetch() via multiplexação HTTP/2 e keep-alive HTTP/1.1.
+   * Nenhuma configuração adicional necessária no lado do cliente.
    */
   constructor(backendUrl?: string, timeout: number = 30000, maxRetries: number = 2) {
     // Use environment variable or provided URL
@@ -37,16 +37,16 @@ export class APIClient {
   }
 
   /**
-   * Submit a capture request to the backend with retry logic
+   * Envia uma solicitação de captura para o backend com lógica de retry
    * 
-   * @param imageData - Base64 encoded image data
-   * @param userId - User identifier
-   * @returns Promise resolving to CaptureResponse
-   * @throws Error if request fails or times out
+   * @param imageData - Dados de imagem codificados em base64
+   * @param userId - Identificador de usuário
+   * @returns Promise resolvendo para CaptureResponse
+   * @throws Error se requisição falhar ou expirar
    * 
-   * Requirement 2.3: Send image data to Backend Service
-   * Requirement 11.1: Communicate via HTTP API
-   * Requirements: 1.5, 4.4, 5.4 - Error handling for network errors and timeouts
+   * Requisito 2.3: Enviar dados de imagem para Serviço Backend
+   * Requisito 11.1: Comunicar via API HTTP
+   * Requisitos: 1.5, 4.4, 5.4 - Tratamento de erros para erros de rede e timeouts
    */
   async submitCapture(imageData: string, userId: string): Promise<CaptureResponse> {
     let lastError: Error | null = null;
@@ -160,7 +160,7 @@ export class APIClient {
     if (!error) {
       return {
         success: false,
-        error: 'An unexpected error occurred.',
+        error: 'Ocorreu um erro inesperado.',
         errorCode: 'SERVER_ERROR'
       };
     }
@@ -169,7 +169,7 @@ export class APIClient {
     if (error.name === 'AbortError') {
       return {
         success: false,
-        error: 'Request timed out after 30 seconds. Please check your connection and try again.',
+        error: 'A requisição expirou após 30 segundos. Por favor, verifique sua conexão e tente novamente.',
         errorCode: 'SERVER_ERROR'
       };
     }
@@ -178,7 +178,7 @@ export class APIClient {
     if (error instanceof TypeError) {
       return {
         success: false,
-        error: 'Unable to connect to the server. Please check your internet connection and try again.',
+        error: 'Não foi possível conectar ao servidor. Por favor, verifique sua conexão com a internet e tente novamente.',
         errorCode: 'SERVER_ERROR'
       };
     }
@@ -186,7 +186,7 @@ export class APIClient {
     // Handle other errors
     return {
       success: false,
-      error: error.message || 'An unexpected error occurred. Please try again.',
+      error: error.message || 'Ocorreu um erro inesperado. Por favor, tente novamente.',
       errorCode: 'SERVER_ERROR'
     };
   }
@@ -199,6 +199,96 @@ export class APIClient {
    */
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Check if a user is registered in the system
+   * 
+   * @param userId - User identifier to check
+   * @returns Promise resolving to boolean indicating if user is registered
+   * @throws Error if request fails
+   */
+  async checkUserRegistration(userId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.backendUrl}/api/user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id: userId }),
+      });
+
+      if (!response.ok) {
+        console.error('[APIClient] Failed to check user registration:', {
+          userId,
+          status: response.status,
+          timestamp: new Date().toISOString()
+        });
+        return false;
+      }
+
+      const data = await response.json() as { registered: boolean };
+      
+      console.log('[APIClient] User registration check:', {
+        userId,
+        registered: data.registered,
+        timestamp: new Date().toISOString()
+      });
+
+      return data.registered;
+    } catch (error) {
+      console.error('[APIClient] Error checking user registration:', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Register a new user with facial biometric data
+   * 
+   * @param userId - User identifier
+   * @param imageData - Base64 encoded image data
+   * @returns Promise resolving to boolean indicating if registration was successful
+   * @throws Error if request fails
+   */
+  async registerUser(userId: string, imageData: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const response = await fetch(`${this.backendUrl}/api/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          user_id: userId,
+          imageData 
+        }),
+      });
+
+      const data = await response.json() as { success: boolean; error?: string };
+
+      console.log('[APIClient] User registration response:', {
+        userId,
+        success: data.success,
+        error: data.error,
+        timestamp: new Date().toISOString()
+      });
+
+      return data;
+    } catch (error) {
+      console.error('[APIClient] Error registering user:', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+      
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Falha ao cadastrar usuário'
+      };
+    }
   }
 }
 

@@ -5,6 +5,8 @@ import { ConfigurationService } from './services/ConfigurationService';
 import { RecognitionService } from './services/RecognitionService';
 import { FailureTrackingService } from './services/FailureTrackingService';
 import { handleCapture } from './routes/capture';
+import { handleUserCheck } from './routes/user';
+import { handleRegister } from './routes/register';
 
 dotenv.config();
 
@@ -104,6 +106,18 @@ app.get('/api/config', async (req: Request, res: Response) => {
 // Capture endpoint
 app.post('/api/capture', async (req: Request, res: Response) => {
   await handleCapture(req, res, recognitionService, failureTrackingService, configService);
+});
+
+// User check endpoint
+app.post('/api/user', async (req: Request, res: Response) => {
+  const config = await configService.getConfiguration();
+  await handleUserCheck(req, res, config.faceApiUrl, config.faceApiKey);
+});
+
+// User registration endpoint
+app.post('/api/register', async (req: Request, res: Response) => {
+  const config = await configService.getConfiguration();
+  await handleRegister(req, res, config.faceApiUrl, config.faceApiKey);
 });
 
 // 404 handler for unknown routes

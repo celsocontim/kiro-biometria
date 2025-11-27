@@ -76,21 +76,37 @@ The application implements robust error handling at all layers:
    - Message: "Failed to capture image from camera..."
    - Logging: Video state, dimensions logged
 
-2. **Max Attempts Exceeded**: User locked out
+2. **Registration Check Failure**: Cannot determine if user is registered
+   - Message: Logged to console, defaults to not registered
+   - Action: Proceeds with registration flow
+   - Logging: Error details logged
+
+3. **Registration Failure**: User registration failed
+   - Message: "Failed to register. Please try again..."
+   - Action: User can retry capture
+   - Logging: Registration error details
+
+4. **Max Attempts Exceeded**: User locked out (identification only)
    - Message: "Maximum attempts exceeded. Please contact support..."
    - UI: Capture button disabled, attempts remaining shown
    - Parent notification: "False" sent via postMessage
 
-3. **Validation Errors**: Invalid request data
+5. **Liveness Check Failure**: Spoof detected
+   - Message: "Spoof attempt! Make sure to use a real face!"
+   - Action: User can retry with real face
+   - Logging: Spoof detection logged
+
+6. **Validation Errors**: Invalid request data
    - Message: "Invalid request. Please refresh the page..."
    - Action: User should refresh
 
-4. **Server Errors**: Backend processing failed
+7. **Server Errors**: Backend processing failed
    - Message: "Server error. Please try again in a moment..."
    - Action: User can retry
 
 **Implementation:**
 - Comprehensive try-catch around capture flow
+- Separate handling for registration vs identification
 - Detailed error logging with context
 - User feedback via FeedbackMessage component
 - Graceful UI state management
@@ -111,9 +127,27 @@ The application implements robust error handling at all layers:
 
 ## Backend Error Handling
 
-### Input Validation (Capture Route)
+### Input Validation (All Routes)
 
-**Validation Checks:**
+**User Check Route Validation:**
+1. **User ID Validation**
+   - Must be non-empty string
+   - Status: 400 Bad Request
+   - Error code: INVALID_REQUEST
+
+**Register Route Validation:**
+1. **User ID Validation**
+   - Must be non-empty string
+   - Status: 400 Bad Request
+   - Error code: INVALID_REQUEST
+
+2. **Image Data Validation**
+   - Must be valid base64 string
+   - Must have data URI prefix (data:image/jpeg or data:image/png)
+   - Status: 400 Bad Request
+   - Error code: INVALID_REQUEST
+
+**Capture Route Validation:**
 1. **User ID Validation**
    - Must be non-empty string
    - Max 255 characters
@@ -127,14 +161,14 @@ The application implements robust error handling at all layers:
    - Error code: INVALID_REQUEST
 
 3. **User Lockout Check**
-   - Check if user exceeded max attempts
+   - Check if user exceeded max attempts (identification only)
    - Status: 403 Forbidden
    - Error code: MAX_ATTEMPTS_EXCEEDED
 
 **Implementation:**
 - Early validation, fail fast
 - Detailed logging of validation failures
-- Consistent error response format
+- Consistent error response format across all routes
 
 ### Recognition Service Errors
 
@@ -260,7 +294,8 @@ All backend errors follow this format:
 
 **Error Codes:**
 - `INVALID_REQUEST`: Validation failure
-- `MAX_ATTEMPTS_EXCEEDED`: User locked out
+- `MAX_ATTEMPTS_EXCEEDED`: User locked out (identification only)
+- `LIVENESS_CHECK_ERROR`: Spoof detection failure
 - `SERVER_ERROR`: Internal server error
 - `NOT_FOUND`: Route not found
 

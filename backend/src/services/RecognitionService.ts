@@ -1,6 +1,7 @@
 import { IRecognitionService, RecognitionResult } from '../types/recognition.types';
 import http from 'http';
 import https from 'https';
+import { debugLog, infoLog, warnLog, errorLog } from '../utils/logger';
 
 /**
  * Recognition service that communicates with external recognition API
@@ -62,7 +63,7 @@ export class RecognitionService implements IRecognitionService {
     try {
       // Use mock if useMock is true or if Face API credentials are missing
       if (useMock || !faceApiUrl || !faceApiKey) {
-        console.log('[RecognitionService] Using mock recognition', {
+        debugLog('[RecognitionService] Using mock recognition', {
           useMock,
           hasFaceApiUrl: !!faceApiUrl,
           hasFaceApiKey: !!faceApiKey
@@ -76,7 +77,7 @@ export class RecognitionService implements IRecognitionService {
       }
 
       // Use real Face API
-      console.log('[RecognitionService] Using Face API');
+      debugLog('[RecognitionService] Using Face API', '');
       const result = await this.withTimeout(
         this.callFaceAPI(imageData, userId, threshold, faceApiUrl, faceApiKey),
         this.timeout,
@@ -91,7 +92,7 @@ export class RecognitionService implements IRecognitionService {
       }
 
       // Log the error for debugging
-      console.error('[RecognitionService] Recognition failed:', {
+      errorLog('[RecognitionService] Recognition failed:', {
         userId,
         error: error instanceof Error ? error.message : 'Unknown error',
         errorName: error instanceof Error ? error.name : 'Unknown',
@@ -179,7 +180,7 @@ export class RecognitionService implements IRecognitionService {
     // Construct API URL
     const apiUrl = `${faceApiUrl}/api/v1/extract`;
 
-    console.log('[RecognitionService] Calling Face API:', {
+    debugLog('[RecognitionService] Calling Face API:', {
       userId,
       apiUrl,
       threshold,
@@ -209,7 +210,7 @@ export class RecognitionService implements IRecognitionService {
       // Parse response
       const responseData = await response.json() as any;
 
-      console.log('[RecognitionService] Face API response:', {
+      debugLog('[RecognitionService] Face API response:', {
         userId,
         status: response.status,
         errorCode: responseData.error_code,
@@ -218,7 +219,7 @@ export class RecognitionService implements IRecognitionService {
 
       // Check for spoof detection (error_code 106)
       if (responseData.error_code === 106 || responseData.error_code === '106' || Number(responseData.error_code) === 106) {
-        console.warn(`Spoof attempt! User id: ${userId}`);
+        debugLog(`[RecognitionService] Spoof detected for user: ${userId}`, '');
         const spoofError = new Error('Spoof attempt detected');
         (spoofError as any).code = 'SPOOF_DETECTED';
         throw spoofError;
@@ -233,7 +234,7 @@ export class RecognitionService implements IRecognitionService {
         if (spoofScore >= threshold) {
           // Failed liveness check
           const confidence = Math.round((1 - spoofProbability) * 100);
-          console.log('[RecognitionService] Failed liveness check:', {
+          debugLog('[RecognitionService] Failed liveness check:', {
             userId,
             spoofScore,
             threshold,
@@ -251,7 +252,7 @@ export class RecognitionService implements IRecognitionService {
         // Passed liveness check - proceed to identify
         const template = responseData.extracted_data.biometric_data?.data;
         if (!template) {
-          console.warn('[RecognitionService] No template in extract response');
+          warnLog('[RecognitionService] No template in extract response');
           return {
             recognized: false,
             confidence: 0,
@@ -261,7 +262,7 @@ export class RecognitionService implements IRecognitionService {
 
         // Call identify API
         const identifyUrl = `${faceApiUrl}/api/v1/users/identify`;
-        console.log('[RecognitionService] Calling identify API:', {
+        debugLog('[RecognitionService] Calling identify API:', {
           userId,
           identifyUrl,
           timestamp: new Date().toISOString()
@@ -285,7 +286,7 @@ export class RecognitionService implements IRecognitionService {
 
         const identifyData = await identifyResponse.json() as any;
 
-        console.log('[RecognitionService] Identify API response:', {
+        debugLog('[RecognitionService] Identify API response:', {
           userId,
           status: identifyResponse.status,
           errorCode: identifyData.error_code,
@@ -294,47 +295,60 @@ export class RecognitionService implements IRecognitionService {
 
         // Check identify response
         if (identifyResponse.ok && identifyData.error_code === 0 && identifyData.identified_users?.length > 0) {
-          const identifiedUser = identifyData.identified_users[0];
-          const externalId = identifiedUser.user?.external_id;
-          const matchConfidence = identifiedUser.match_confidence as number;
-          const confidenceScore = Math.round(matchConfidence * 100);
-
-          console.log('[RecognitionService] Identify result:', {
+          debugLog('[RecognitionService] Checking all identified users:', {
             userId,
-            externalId,
-            matchConfidence,
-            confidenceScore,
-            threshold,
+            totalIdentified: identifyData.identified_users.length,
             timestamp: new Date().toISOString()
           });
 
-          // Check if external_id matches userId and confidence meets threshold
-          if (externalId === userId && confidenceScore >= threshold) {
-            return {
-              recognized: true,
-              confidence: confidenceScore,
-              userId
-            };
-          } else {
-            // ID mismatch or confidence too low
-            console.log('[RecognitionService] Identification failed:', {
+          // Iterate through all identified users to find a match
+          for (const identifiedUser of identifyData.identified_users) {
+            const externalId = identifiedUser.user?.external_id;
+            const matchConfidence = identifiedUser.match_confidence as number;
+            const confidenceScore = Math.round(matchConfidence * 100);
+
+            debugLog('[RecognitionService] Checking identified user:', {
               userId,
               externalId,
-              idMatch: externalId === userId,
+              matchConfidence,
               confidenceScore,
-              meetsThreshold: confidenceScore >= threshold,
+              threshold,
               timestamp: new Date().toISOString()
             });
 
-            return {
-              recognized: false,
-              confidence: confidenceScore,
-              userId
-            };
+            // Check if external_id matches userId and confidence meets threshold
+            if (externalId === userId && confidenceScore >= threshold) {
+              debugLog('[RecognitionService] Match found:', {
+                userId,
+                externalId,
+                confidenceScore,
+                timestamp: new Date().toISOString()
+              });
+
+              return {
+                recognized: true,
+                confidence: confidenceScore,
+                userId
+              };
+            }
           }
+
+          // No matching user found in the identified_users array
+          debugLog('[RecognitionService] No matching user found:', {
+            userId,
+            totalChecked: identifyData.identified_users.length,
+            timestamp: new Date().toISOString()
+          });
+
+          return {
+            recognized: false,
+            confidence: 0,
+            userId
+          };
         } else {
           // Identify API error or no users found
-          console.warn('[RecognitionService] Identify API error or no users found:', {
+          warnLog('[RecognitionService] Identify API error or no users found:');
+          debugLog('[RecognitionService] Identify API error details:', {
             userId,
             status: identifyResponse.status,
             errorCode: identifyData.error_code,
@@ -349,7 +363,8 @@ export class RecognitionService implements IRecognitionService {
         }
       } else {
         // API returned error or invalid response - treat as failure with 0 confidence
-        console.warn('[RecognitionService] Face API returned error or invalid response:', {
+        warnLog('[RecognitionService] Face API returned error or invalid response');
+        debugLog('[RecognitionService] Face API error details:', {
           userId,
           status: response.status,
           errorCode: responseData.error_code,
@@ -369,7 +384,7 @@ export class RecognitionService implements IRecognitionService {
         throw error;
       }
 
-      console.error('[RecognitionService] Face API call failed:', {
+      errorLog('[RecognitionService] Face API call failed:', {
         userId,
         error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
@@ -413,7 +428,7 @@ export class RecognitionService implements IRecognitionService {
     // Determine if recognized based on threshold
     const recognized = confidence >= threshold;
 
-    console.log('[RecognitionService] Mock recognition completed:', {
+    debugLog('[RecognitionService] Mock recognition completed:', {
       userId,
       recognized,
       confidence,

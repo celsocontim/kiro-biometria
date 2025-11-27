@@ -107,6 +107,8 @@ interface CaptureScreenState {
   facingMode: 'user' | 'environment';
   recognitionSuccess: boolean;
   attemptsRemaining: number | null;
+  isRegistered: boolean | null;  // null = checking, true = registered, false = not registered
+  isRegistering: boolean;         // true during registration process
 }
 ```
 
@@ -204,8 +206,19 @@ Handles communication with backend.
 
 ```typescript
 interface APIClient {
-  // Send capture request to backend
+  // Check if user is registered
+  checkUserRegistration(userId: string): Promise<boolean>;
+  
+  // Register new user with facial data
+  registerUser(userId: string, imageData: string): Promise<RegisterResult>;
+  
+  // Send identification request to backend (registered users)
   submitCapture(imageData: string, userId: string): Promise<RecognitionResponse>;
+}
+
+interface RegisterResult {
+  success: boolean;
+  error?: string;
 }
 
 interface RecognitionResponse {
@@ -238,9 +251,62 @@ interface IframeMessenger {
 
 ### Backend API
 
+#### POST /api/user
+
+Endpoint for checking if a user is registered.
+
+**Request:**
+```typescript
+interface UserCheckRequest {
+  user_id: string;    // User identifier to check
+}
+```
+
+**Response:**
+```typescript
+interface UserCheckResponse {
+  registered: boolean;  // Whether user exists in system
+  timestamp: string;    // ISO 8601 timestamp
+  error?: string;
+  errorCode?: 'INVALID_REQUEST' | 'SERVER_ERROR';
+}
+```
+
+**Status Codes:**
+- 200: Success
+- 400: Invalid request (missing user_id)
+- 500: Server error or Recognition API failure
+
+#### POST /api/register
+
+Endpoint for registering a new user with facial data.
+
+**Request:**
+```typescript
+interface RegisterRequest {
+  user_id: string;    // User identifier
+  imageData: string;  // Base64 encoded image
+}
+```
+
+**Response:**
+```typescript
+interface RegisterResponse {
+  success: boolean;
+  timestamp: string;
+  error?: string;
+  errorCode?: 'INVALID_REQUEST' | 'SERVER_ERROR';
+}
+```
+
+**Status Codes:**
+- 200: Success
+- 400: Invalid request (missing user_id or imageData)
+- 500: Server error or Recognition API failure
+
 #### POST /api/capture
 
-Endpoint for receiving and processing capture requests.
+Endpoint for receiving and processing identification requests (registered users only).
 
 **Request:**
 ```typescript
@@ -262,7 +328,7 @@ interface CaptureResponse {
     attemptsRemaining?: number;
   };
   error?: string;
-  errorCode?: 'MAX_ATTEMPTS_EXCEEDED' | 'INVALID_REQUEST' | 'SERVER_ERROR';
+  errorCode?: 'MAX_ATTEMPTS_EXCEEDED' | 'INVALID_REQUEST' | 'SERVER_ERROR' | 'LIVENESS_CHECK_ERROR';
 }
 ```
 
@@ -553,6 +619,36 @@ interface AppConfiguration {
 *For any* application load, the Frontend Application should correctly detect whether it is embedded in an iframe by checking window.parent.
 
 **Validates: Requirements 10.4**
+
+### Property 26: Registration check on page load
+
+*For any* Capture Screen load, the Frontend Application should check if the user is registered by calling the Backend Service user check endpoint.
+
+**Validates: Requirements 12.1**
+
+### Property 27: Backend queries Recognition API for user existence
+
+*For any* user registration check request, the Backend Service should query the Recognition API to determine if the user exists.
+
+**Validates: Requirements 12.2**
+
+### Property 28: Unregistered users trigger registration
+
+*For any* unregistered user that captures an image, the Backend Service should register the user with the Recognition API using the captured image.
+
+**Validates: Requirements 12.3**
+
+### Property 29: Success screen shown after registration
+
+*For any* successful user registration, the Frontend Application should display the success screen.
+
+**Validates: Requirements 12.4**
+
+### Property 30: Registered users trigger identification
+
+*For any* registered user that captures an image, the Backend Service should perform identification instead of registration.
+
+**Validates: Requirements 12.5**
 
 ## Error Handling
 
