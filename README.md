@@ -78,6 +78,8 @@ FRONTEND_URL=http://localhost:3000
 MAX_FAILURE_ATTEMPTS=0
 RECOGNITION_THRESHOLD=70
 USE_MOCK=false
+FACE_API_URL=your-face-api-url-here
+FACE_API_KEY=your-face-api-key-here
 ```
 
 **Frontend** (`frontend/.env.local`):
@@ -121,6 +123,8 @@ npm run dev
 | `MAX_FAILURE_ATTEMPTS` | 0 | Max failed attempts before lockout (0 = unlimited) |
 | `RECOGNITION_THRESHOLD` | 70 | Confidence threshold (0-100) for recognition |
 | `USE_MOCK` | false | Use mock recognition instead of real API |
+| `FACE_API_URL` | - | Facial recognition API endpoint URL |
+| `FACE_API_KEY` | - | Facial recognition API authentication key |
 
 ### Configuration Behavior
 
