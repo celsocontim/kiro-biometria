@@ -20,8 +20,14 @@ export interface AppConfiguration {
   /** Recognition confidence threshold (0-100). Scores >= threshold are considered recognized */
   recognitionThreshold: number;
   
-  /** Force failure mode for testing - generates confidence scores below threshold */
-  forceFailure: boolean;
+  /** Use mock recognition service instead of real Face API */
+  useMock: boolean;
+  
+  /** Face API URL for facial recognition service */
+  faceApiUrl: string;
+  
+  /** Face API key for authentication */
+  faceApiKey: string;
 }
 
 /**

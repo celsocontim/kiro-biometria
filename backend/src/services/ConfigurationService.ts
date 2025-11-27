@@ -12,7 +12,9 @@ const DEFAULT_CONFIG: AppConfiguration = {
   recognitionApiUrl: process.env.RECOGNITION_API_URL || '',
   recognitionApiKey: process.env.RECOGNITION_API_KEY || '',
   recognitionThreshold: 70, // Default 70% confidence threshold
-  forceFailure: false // Default to normal operation
+  useMock: false, // Default to real Face API
+  faceApiUrl: process.env.FACE_API_URL || '',
+  faceApiKey: process.env.FACE_API_KEY || ''
 };
 
 /**
@@ -84,9 +86,19 @@ export class ConfigurationService implements IConfigurationService {
         }
       }
 
-      if (process.env.FORCE_FAILURE !== undefined) {
-        config.forceFailure = process.env.FORCE_FAILURE === 'true';
-        console.log('[Config] Loaded FORCE_FAILURE from env:', config.forceFailure);
+      if (process.env.USE_MOCK !== undefined) {
+        config.useMock = process.env.USE_MOCK === 'true';
+        console.log('[Config] Loaded USE_MOCK from env:', config.useMock);
+      }
+
+      if (process.env.FACE_API_URL) {
+        config.faceApiUrl = process.env.FACE_API_URL;
+        console.log('[Config] Loaded FACE_API_URL from env');
+      }
+
+      if (process.env.FACE_API_KEY) {
+        config.faceApiKey = process.env.FACE_API_KEY;
+        console.log('[Config] Loaded FACE_API_KEY from env');
       }
 
       // Load from file if path is provided
@@ -123,9 +135,17 @@ export class ConfigurationService implements IConfigurationService {
               config.recognitionThreshold = fileConfig.recognitionThreshold;
               console.log('[Config] Loaded recognitionThreshold from file:', fileConfig.recognitionThreshold);
             }
-            if (typeof fileConfig.forceFailure === 'boolean') {
-              config.forceFailure = fileConfig.forceFailure;
-              console.log('[Config] Loaded forceFailure from file:', fileConfig.forceFailure);
+            if (typeof fileConfig.useMock === 'boolean') {
+              config.useMock = fileConfig.useMock;
+              console.log('[Config] Loaded useMock from file:', fileConfig.useMock);
+            }
+            if (typeof fileConfig.faceApiUrl === 'string') {
+              config.faceApiUrl = fileConfig.faceApiUrl;
+              console.log('[Config] Loaded faceApiUrl from file');
+            }
+            if (typeof fileConfig.faceApiKey === 'string') {
+              config.faceApiKey = fileConfig.faceApiKey;
+              console.log('[Config] Loaded faceApiKey from file');
             }
           } catch (error) {
             console.error('[Config] Failed to load configuration from file:', {
@@ -152,9 +172,11 @@ export class ConfigurationService implements IConfigurationService {
       failureResetOnSuccess: config.failureResetOnSuccess,
       captureTimeout: config.captureTimeout,
       recognitionThreshold: config.recognitionThreshold,
-      forceFailure: config.forceFailure,
+      useMock: config.useMock,
       hasRecognitionApiUrl: !!config.recognitionApiUrl,
-      hasRecognitionApiKey: !!config.recognitionApiKey
+      hasRecognitionApiKey: !!config.recognitionApiKey,
+      hasFaceApiUrl: !!config.faceApiUrl,
+      hasFaceApiKey: !!config.faceApiKey
     });
 
     return config;

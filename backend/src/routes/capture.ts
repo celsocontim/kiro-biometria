@@ -105,20 +105,53 @@ export async function handleCapture(
     }
 
     // Requirement 5.4: Call recognition service with error handling
-    // Get recognition threshold and forceFailure from configuration
+    // Get configuration parameters
     const config = await configService.getConfiguration();
     const threshold = config.recognitionThreshold;
-    const forceFailure = config.forceFailure;
+    const useMock = config.useMock;
+    const faceApiUrl = config.faceApiUrl;
+    const faceApiKey = config.faceApiKey;
     
     console.log('[Capture] Processing recognition request:', {
       userId,
       imageSize: imageData.length,
       threshold,
-      forceFailure,
+      useMock,
+      hasFaceApiUrl: !!faceApiUrl,
+      hasFaceApiKey: !!faceApiKey,
       timestamp: new Date().toISOString()
     });
 
-    const recognitionResult = await recognitionService.recognize(imageData, userId, threshold, forceFailure);
+    let recognitionResult;
+    try {
+      recognitionResult = await recognitionService.recognize(
+        imageData, 
+        userId, 
+        threshold, 
+        useMock,
+        faceApiUrl,
+        faceApiKey
+      );
+    } catch (error) {
+      // Check if it's a spoof detection error
+      if (error instanceof Error && (error as any).code === 'SPOOF_DETECTED') {
+        console.warn('[Capture] Spoof attempt detected:', {
+          userId,
+          timestamp: new Date().toISOString()
+        });
+        
+        const response: CaptureResponse = {
+          success: false,
+          error: 'Spoof attempt! Make sure to use a real face!',
+          errorCode: 'LIVENESS_CHECK_ERROR'
+        };
+        
+        res.status(400).json(response);
+        return;
+      }
+      // Re-throw other errors to be handled by outer catch
+      throw error;
+    }
 
     console.log('[Capture] Recognition result:', {
       userId,

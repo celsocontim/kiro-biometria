@@ -1,16 +1,17 @@
 # Facial Recognition Capture Application
 
-A full-stack web application for capturing facial images with visual guidance and processing them through a recognition API. Features real-time camera feed, responsive design, and configurable recognition parameters.
+A full-stack web application for capturing facial images with real-time liveness detection and user identification. Features live camera feed, responsive design, and configurable recognition parameters with integration to facial recognition APIs.
 
 ## Features
 
-- 📷 Live camera feed with face positioning guide (oval overlay)
-- 🎯 Configurable recognition confidence threshold
-- 🔄 Automatic retry with attempt tracking
-- 📱 Responsive design (mobile, tablet, desktop)
+- 📷 Full-screen live camera feed with face positioning guide
+- 🎯 Real-time liveness detection (anti-spoofing)
+- 👤 User identification with confidence scoring
+- 🔄 Configurable attempt tracking (unlimited or limited)
+- 📱 Fully responsive design (mobile, tablet, desktop)
 - 🔌 Iframe embedding support with PostMessage API
 - ⚙️ Runtime configuration without deployment
-- 🧪 Mock recognition service for development/testing
+- 🧪 Mock mode for development/testing
 
 ## Project Structure
 
@@ -28,30 +29,26 @@ A full-stack web application for capturing facial images with visual guidance an
 │   │   ├── CameraService.ts
 │   │   ├── APIClient.ts
 │   │   └── IframeMessenger.ts
-│   ├── types/            # TypeScript type definitions
-│   └── __tests__/        # Component and service tests
+│   └── types/            # TypeScript type definitions
 │
 ├── backend/              # Express backend API
 │   ├── src/
 │   │   ├── index.ts      # Express app entry point
 │   │   ├── routes/       # API route handlers
-│   │   ├── services/     # Business logic services
-│   │   │   ├── ConfigurationService.ts
-│   │   │   ├── FailureTrackingService.ts
-│   │   │   └── RecognitionService.ts
-│   │   └── types/        # TypeScript type definitions
-│   └── __tests__/        # Service tests
+│   │   └── services/     # Business logic services
+│   │       ├── ConfigurationService.ts
+│   │       ├── FailureTrackingService.ts
+│   │       └── RecognitionService.ts
+│   └── types/            # TypeScript type definitions
 │
-├── .kiro/                # Kiro IDE configuration and specs
-├── ERROR_HANDLING.md     # Error handling documentation
-├── PERFORMANCE_OPTIMIZATIONS.md
-└── SETUP_VERIFICATION.md
+└── .kiro/                # Kiro IDE configuration and specs
 ```
 
 ## Prerequisites
 
 - Node.js 18.17+ (required for Next.js 14)
 - npm or yarn
+- Modern browser with camera support
 
 ## Quick Start
 
@@ -76,11 +73,11 @@ cp backend/.env.example backend/.env
 
 Edit `backend/.env`:
 ```env
-PORT=3001
+PORT=4000
 FRONTEND_URL=http://localhost:3000
 MAX_FAILURE_ATTEMPTS=0
 RECOGNITION_THRESHOLD=70
-FORCE_FAILURE=false
+USE_MOCK=false
 ```
 
 **Frontend** (`frontend/.env.local`):
@@ -90,27 +87,19 @@ cp frontend/.env.local.example frontend/.env.local
 
 Edit `frontend/.env.local`:
 ```env
-NEXT_PUBLIC_BACKEND_URL=http://localhost:3001
+NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
 ```
 
 ### 3. Run Development Servers
 
-**Option A: Run from root directory**
+**Terminal 1 - Backend:**
 ```bash
-# Terminal 1 - Backend
-npm run dev:backend
-
-# Terminal 2 - Frontend
-npm run dev:frontend
-```
-
-**Option B: Run from individual directories**
-```bash
-# Terminal 1 - Backend
 cd backend
 npm run dev
+```
 
-# Terminal 2 - Frontend
+**Terminal 2 - Frontend:**
+```bash
 cd frontend
 npm run dev
 ```
@@ -118,8 +107,8 @@ npm run dev
 ### 4. Access the Application
 
 - Frontend: http://localhost:3000
-- Backend API: http://localhost:3001
-- With userId parameter: http://localhost:3000?userId=347313
+- Backend API: http://localhost:4000
+- With userId parameter: http://localhost:3000?userId=YOUR_USER_ID
 
 ## Configuration Parameters
 
@@ -127,19 +116,18 @@ npm run dev
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PORT` | 3001 | Backend server port |
+| `PORT` | 4000 | Backend server port |
 | `FRONTEND_URL` | http://localhost:3000 | Frontend URL for CORS |
-| `MAX_FAILURE_ATTEMPTS` | 5 | Max failed attempts before lockout (0 = unlimited) |
+| `MAX_FAILURE_ATTEMPTS` | 0 | Max failed attempts before lockout (0 = unlimited) |
 | `RECOGNITION_THRESHOLD` | 70 | Confidence threshold (0-100) for recognition |
-| `FORCE_FAILURE` | false | Force all recognitions to fail (testing) |
-| `RECOGNITION_API_URL` | - | External recognition API URL (optional) |
-| `RECOGNITION_API_KEY` | - | External recognition API key (optional) |
+| `USE_MOCK` | false | Use mock recognition instead of real API |
 
 ### Configuration Behavior
 
-- **MAX_FAILURE_ATTEMPTS = 0**: Unlimited attempts, no user lockout
+- **MAX_FAILURE_ATTEMPTS = 0**: Unlimited attempts, no user lockout, attempts shown as 99
 - **RECOGNITION_THRESHOLD**: Confidence scores >= threshold are "recognized"
-- **FORCE_FAILURE = true**: Mock API generates confidence < threshold (always fails)
+- **USE_MOCK = true**: Uses mock API with random confidence scores
+- **USE_MOCK = false**: Uses real facial recognition API
 - **Auto-reload**: Configuration reloads every 60 seconds without restart
 
 ## API Endpoints
@@ -164,40 +152,51 @@ npm run dev
   "success": true,
   "data": {
     "recognized": true,
-    "confidence": 85,
+    "confidence": 95,
     "userId": "347313",
-    "timestamp": "2025-11-26T21:00:00.000Z",
+    "timestamp": "2025-11-26T...",
     "attemptsRemaining": 99
   }
 }
 ```
 
-**Capture Response (Failure):**
+**Capture Response (Spoof Detected):**
 ```json
 {
-  "success": true,
-  "data": {
-    "recognized": false,
-    "confidence": 45,
-    "userId": "347313",
-    "timestamp": "2025-11-26T21:00:00.000Z",
-    "attemptsRemaining": 4
-  }
+  "success": false,
+  "error": "Spoof attempt! Make sure to use a real face!",
+  "errorCode": "LIVENESS_CHECK_ERROR"
 }
 ```
+
+## Recognition Flow
+
+The application uses a two-step verification process:
+
+### Step 1: Liveness Detection (Extract)
+- Captures image from camera
+- Sends to facial recognition API for liveness check
+- Detects spoofing attempts (photos, videos, masks)
+- Extracts facial template if liveness check passes
+
+### Step 2: User Identification (Identify)
+- Uses facial template from Step 1
+- Matches against registered users
+- Verifies user ID matches expected ID
+- Returns confidence score
+
+**Success Criteria:**
+- ✅ Liveness check passes (not spoofed)
+- ✅ User ID matches expected ID
+- ✅ Confidence score >= threshold
 
 ## Development
 
 ### Frontend Development
 
-- Hot-reload enabled for all React components
-- TypeScript strict mode
-- Tailwind CSS for styling
-- Jest + React Testing Library for tests
-
 ```bash
 cd frontend
-npm run dev      # Development server
+npm run dev      # Development server (port 3000)
 npm run build    # Production build
 npm run lint     # ESLint
 npm test         # Run tests
@@ -205,60 +204,37 @@ npm test         # Run tests
 
 ### Backend Development
 
-- Auto-restart on file changes (ts-node-dev)
-- TypeScript strict mode
-- Express with CORS
-- Jest for tests
-
 ```bash
 cd backend
-npm run dev      # Development server
+npm run dev      # Development server (port 4000)
 npm run build    # Production build
 npm test         # Run tests
 ```
 
-## Testing
+## Features in Detail
 
-### Run All Tests
+### Full-Screen Camera Feed
+- Camera feed fills entire viewport
+- Responsive oval guide for face positioning
+- User ID displayed in upper-left corner
+- Dynamic text sizing based on screen size
 
-```bash
-# Frontend tests
-cd frontend
-npm test
+### Liveness Detection
+- Real-time spoof detection
+- Prevents photos, videos, and masks
+- Clear error messages for spoof attempts
+- Logged warnings for security monitoring
 
-# Backend tests
-cd backend
-npm test
-```
+### Feedback System
+- Success messages auto-dismiss after 3 seconds
+- Error messages auto-dismiss after 10 seconds
+- Manual dismiss option available
+- Attempt counter (when enabled)
 
-### Mock Recognition Service
-
-The backend includes a mock recognition service for development:
-- Generates random confidence scores (0-100)
-- Simulates API delay (500-1500ms)
-- Configurable via `FORCE_FAILURE` parameter
-
-## Production Build
-
-### Frontend
-
-```bash
-cd frontend
-npm run build
-npm start
-```
-
-The frontend will be available at http://localhost:3000
-
-### Backend
-
-```bash
-cd backend
-npm run build
-npm start
-```
-
-The backend will be available at http://localhost:3001
+### Responsive Design
+- Mobile: Full-screen with touch-optimized controls
+- Tablet: Full-screen with larger buttons
+- Desktop: Full-screen with keyboard support
 
 ## Iframe Integration
 
@@ -302,8 +278,25 @@ The application supports iframe embedding with PostMessage communication:
 ### Backend Not Starting
 
 1. Verify Node.js version >= 18.17
-2. Check if port 3001 is available
+2. Check if port 4000 is available
 3. Ensure `.env` file exists with valid values
+
+### Spoof Detection Issues
+
+1. Ensure `USE_MOCK=false` in backend `.env`
+2. Verify facial recognition API credentials are configured
+3. Check backend console for "Spoof attempt!" warnings
+4. Ensure proper lighting for camera
+
+## Security Features
+
+- Liveness detection prevents spoofing
+- Configurable attempt limits
+- User lockout after max attempts
+- Secure HTTPS requirement for camera access
+- CORS protection
+- Request validation
+- Error logging for security monitoring
 
 ## Documentation
 

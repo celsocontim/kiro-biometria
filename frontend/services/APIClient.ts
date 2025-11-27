@@ -134,8 +134,11 @@ export class APIClient {
       // Log response for debugging
       console.log('[APIClient] Response received:', {
         userId,
+        status: response.status,
         success: data.success,
         errorCode: data.errorCode,
+        error: data.error,
+        fullResponse: data,
         timestamp: new Date().toISOString()
       });
 

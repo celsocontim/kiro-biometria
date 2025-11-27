@@ -178,6 +178,31 @@ export default function Home() {
         
         // Send failure message to parent window if embedded
         iframeMessenger.sendCompletionStatus(false);
+      } else if (response.errorCode === 'LIVENESS_CHECK_ERROR') {
+        // Handle spoof detection
+        console.log('Spoff');
+        console.warn('[CaptureScreen] Spoof attempt detected:', {
+          userId,
+          error: response.error,
+          errorCode: response.errorCode,
+          timestamp: new Date().toISOString()
+        });
+        
+        setFeedbackType('error');
+        setFeedbackMessage(response.error || 'Spoof attempt! Make sure to use a real face!');
+        setFeedbackVisible(true);
+      } else if (response.error && response.error.toLowerCase().includes('spoof')) {
+        // Handle spoof detection (fallback check)
+        console.log('Spoff');
+        console.warn('[CaptureScreen] Spoof attempt detected (via message):', {
+          userId,
+          error: response.error,
+          timestamp: new Date().toISOString()
+        });
+        
+        setFeedbackType('error');
+        setFeedbackMessage(response.error);
+        setFeedbackVisible(true);
       } else if (response.errorCode === 'INVALID_REQUEST') {
         // Requirement 4.4: Handle validation errors
         console.error('[CaptureScreen] Invalid request:', {
@@ -254,12 +279,11 @@ export default function Home() {
         visible={feedbackVisible}
       />
       
-      {/* Camera Feed Container - Responsive Layout */}
-      {/* Mobile: Full screen, Tablet: 80% centered, Desktop: 640px centered */}
-      <div className="absolute inset-0 flex items-center justify-center bg-black">
+      {/* Camera Feed Container - Full Screen */}
+      <div className="absolute inset-0 bg-black">
         <div 
           ref={containerRef}
-          className="relative w-full h-full md:w-[80%] md:h-[80%] md:max-w-[1280px] md:max-h-[720px] md:rounded-lg md:overflow-hidden md:shadow-2xl"
+          className="relative w-full h-full"
         >
           <CameraFeed
             stream={cameraStream}
@@ -267,6 +291,19 @@ export default function Home() {
             onError={handleCameraError}
             facingMode={facingMode}
           />
+          
+          {/* User ID Display */}
+          <div className="absolute top-4 left-4 z-20 max-w-[50vw]">
+            <p 
+              className="text-white font-bold break-words"
+              style={{
+                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8), 1px -1px 2px rgba(0, 0, 0, 0.8), -1px 1px 2px rgba(0, 0, 0, 0.8)',
+                fontSize: 'clamp(1rem, 4vw, 2rem)'
+              }}
+            >
+              {userId}
+            </p>
+          </div>
           
           {/* Face Oval Guide Overlay */}
           {cameraStream && containerDimensions.width > 0 && (

@@ -46,5 +46,5 @@ export interface CaptureResponse {
   error?: string;
   
   /** Error code for client handling */
-  errorCode?: 'MAX_ATTEMPTS_EXCEEDED' | 'INVALID_REQUEST' | 'SERVER_ERROR';
+  errorCode?: 'MAX_ATTEMPTS_EXCEEDED' | 'INVALID_REQUEST' | 'SERVER_ERROR' | 'LIVENESS_CHECK_ERROR';
 }

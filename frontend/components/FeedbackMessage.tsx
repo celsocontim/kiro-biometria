@@ -41,12 +41,13 @@ export default function FeedbackMessage({
   onDismiss,
   visible
 }: FeedbackMessageProps) {
-  // Requirement 6.4: Auto-dismiss success messages after 3 seconds
+  // Auto-dismiss messages after 10 seconds (success after 3 seconds)
   useEffect(() => {
-    if (visible && type === 'success' && onDismiss) {
+    if (visible && onDismiss) {
+      const timeout = type === 'success' ? 3000 : 10000;
       const timer = setTimeout(() => {
         onDismiss();
-      }, 3000);
+      }, timeout);
       
       return () => clearTimeout(timer);
     }
