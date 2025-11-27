@@ -91,15 +91,19 @@ export async function handleCapture(
     // Requisito 8.2: Verificar se usuário está bloqueado devido a tentativas máximas excedidas
     const isLocked = await failureTrackingService.isUserLocked(userId);
     if (isLocked) {
+      const minutesRemaining = await failureTrackingService.getMinutesUntilExpiry(userId);
+      
       debugLog('[Capture] User is locked:', {
         userId,
+        minutesRemaining,
         timestamp: new Date().toISOString()
       });
       
       const response: CaptureResponse = {
         success: false,
         error: 'Número máximo de tentativas de reconhecimento excedido. Por favor, entre em contato com o suporte para obter assistência.',
-        errorCode: 'MAX_ATTEMPTS_EXCEEDED'
+        errorCode: 'MAX_ATTEMPTS_EXCEEDED',
+        minutesRemaining
       };
       res.status(403).json(response);
       return;
@@ -122,6 +126,8 @@ export async function handleCapture(
       hasFaceApiKey: !!faceApiKey,
       timestamp: new Date().toISOString()
     });
+    
+    infoLog(`[Capture] Starting recognition for user_id: ${userId}`);
 
     let recognitionResult;
     try {
@@ -134,14 +140,67 @@ export async function handleCapture(
         faceApiKey
       );
     } catch (error) {
-      // Verifica se é um erro de detecção de fraude
-      if (error instanceof Error && (error as any).code === 'SPOOF_DETECTED') {
-        infoLog(`Spoof attempted! User_id: ${userId}`);
+      // Verifica se é um erro da Face API
+      if (error instanceof Error && (error as any).code === 'FACE_API_ERROR') {
+        const faceApiErrorCode = (error as any).faceApiErrorCode;
+        const faceApiErrorMessage = (error as any).faceApiErrorMessage;
+        
+        // Mapeia código de erro para tipo e mensagem específicos
+        let errorType: 'LIVENESS_CHECK_ERROR' | 'FACE_BOUNDARY_ERROR' | 'MULTIPLE_FACE_ERROR' | 'FACE_NOT_FOUND' | 'SERVER_ERROR';
+        let errorMessage: string;
+        
+        if (faceApiErrorCode === 106 || faceApiErrorCode === '106' || Number(faceApiErrorCode) === 106) {
+          // Erro 106: Liveness/Spoof
+          infoLog(`Spoof attempted! User_id: ${userId}`);
+          errorType = 'LIVENESS_CHECK_ERROR';
+          errorMessage = 'Tentativa de fraude! Certifique-se de usar um rosto real!';
+        } else if (faceApiErrorCode === 109 || faceApiErrorCode === '109' || Number(faceApiErrorCode) === 109) {
+          // Erro 109: Face fora dos limites
+          errorType = 'FACE_BOUNDARY_ERROR';
+          errorMessage = 'Face não está posicionada adequadamente.';
+        } else if (faceApiErrorCode === 108 || faceApiErrorCode === '108' || Number(faceApiErrorCode) === 108) {
+          // Erro 108: Múltiplas faces
+          errorType = 'MULTIPLE_FACE_ERROR';
+          errorMessage = 'Diversas faces encontradas. Garanta apenas uma face na imagem.';
+        } else if (faceApiErrorCode === 107 || faceApiErrorCode === '107' || Number(faceApiErrorCode) === 107) {
+          // Erro 107: Face não detectada
+          errorType = 'FACE_NOT_FOUND';
+          errorMessage = 'Não foi encontrada face na imagem.';
+        } else {
+          // Outros erros
+          errorType = 'SERVER_ERROR';
+          errorMessage = 'Erro ao processar imagem. Por favor, tente novamente.';
+        }
+        
+        errorLog('[Capture] Face API error mapped:', {
+          userId,
+          faceApiErrorCode,
+          faceApiErrorCodeType: typeof faceApiErrorCode,
+          errorType,
+          errorMessage,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Registra falha no rastreamento
+        await failureTrackingService.recordFailure(userId);
+        const attemptsRemaining = await failureTrackingService.getRemainingAttempts(userId);
+        
+        // Verifica se usuário ficou bloqueado após esta tentativa
+        const isNowLocked = await failureTrackingService.isUserLocked(userId);
+        const minutesRemaining = isNowLocked ? await failureTrackingService.getMinutesUntilExpiry(userId) : undefined;
         
         const response: CaptureResponse = {
           success: false,
-          error: 'Tentativa de fraude! Certifique-se de usar um rosto real!',
-          errorCode: 'LIVENESS_CHECK_ERROR'
+          error: errorMessage,
+          errorCode: errorType,
+          minutesRemaining,
+          data: {
+            recognized: false,
+            confidence: 0,
+            userId,
+            timestamp: new Date().toISOString(),
+            attemptsRemaining
+          }
         };
         
         res.status(400).json(response);

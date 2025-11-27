@@ -16,19 +16,37 @@ import FaceOvalGuide from '@/components/FaceOvalGuide';
 import CaptureButton from '@/components/CaptureButton';
 import CameraSwitchButton from '@/components/CameraSwitchButton';
 import SuccessScreen from '@/components/SuccessScreen';
+import FailureScreen from '@/components/FailureScreen';
 import FeedbackMessage, { FeedbackType } from '@/components/FeedbackMessage';
 import { cameraService } from '@/services/CameraService';
 import { apiClient } from '@/services/APIClient';
 import { iframeMessenger } from '@/services/IframeMessenger';
+import { sanitizeName, formatNameForDisplay } from '@/utils/nameUtils';
 import type { FacingMode } from '@/types/camera.types';
 
 export default function Home() {
   const searchParams = useSearchParams();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   
-  // Obtém userId dos parâmetros de consulta
+  // Obtém userId e nome dos parâmetros de consulta
   // Requisito 4.1: Gerar ou aceitar Identificador de Usuário
   const userId = searchParams.get('userId') || 'default-user';
+  const rawName = searchParams.get('nome') || searchParams.get('name') || '';
+  const userName = sanitizeName(rawName) || 'Usuário';
+  
+  // Detecta se é mobile para formatação do nome
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Ref do container para dimensões
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -49,6 +67,12 @@ export default function Home() {
   const [feedbackType, setFeedbackType] = useState<FeedbackType>('loading');
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | undefined>(undefined);
+  
+  // Estado de tela de falha
+  const [showFailureScreen, setShowFailureScreen] = useState(false);
+  const [failureErrorMessage, setFailureErrorMessage] = useState('');
+  const [capturedImageData, setCapturedImageData] = useState<string | undefined>(undefined);
+  const [minutesRemaining, setMinutesRemaining] = useState<number | undefined>(undefined);
   
   // Estado de troca de câmera
   const [showCameraSwitch, setShowCameraSwitch] = useState(false);
@@ -191,12 +215,64 @@ export default function Home() {
           console.error('[CaptureScreen] Registration failed:', {
             userId,
             error: registrationResult.error,
+            errorCode: registrationResult.errorCode,
+            attemptsRemaining: registrationResult.attemptsRemaining,
             timestamp: new Date().toISOString()
           });
           
-          setFeedbackType('error');
-          setFeedbackMessage(registrationResult.error || 'Falha ao cadastrar. Por favor, tente novamente.');
-          setFeedbackVisible(true);
+          // Se for MAX_ATTEMPTS_EXCEEDED, mostrar tela de falha
+          if (registrationResult.errorCode === 'MAX_ATTEMPTS_EXCEEDED') {
+            setIsLocked(true);
+            setAttemptsRemaining(registrationResult.attemptsRemaining ?? 0);
+            setMinutesRemaining(registrationResult.minutesRemaining);
+            setFailureErrorMessage(registrationResult.error || 'Número máximo de tentativas de cadastro excedido.');
+            setCapturedImageData(imageData);
+            
+            // Limpa feedback antes de mostrar tela de falha
+            setFeedbackVisible(false);
+            setFeedbackMessage('');
+            
+            // Libera recurso da câmera
+            if (cameraStream) {
+              console.log('[CaptureScreen] Stopping camera stream for registration max attempts');
+              cameraService.stopStream(cameraStream);
+              setCameraStream(null);
+            }
+            
+            setShowFailureScreen(true);
+            setIsRegistering(false);
+            setIsCapturing(false);
+            return;
+          }
+          
+          // Para outros erros, verificar se deve mostrar tela de falha
+          const attempts = registrationResult.attemptsRemaining ?? 99;
+          setAttemptsRemaining(attempts);
+          
+          if (attempts !== 99 && attempts >= 0) {
+            // Mostrar tela de falha para tentativas limitadas
+            setFailureErrorMessage(registrationResult.error || 'Falha ao cadastrar. Por favor, tente novamente.');
+            setCapturedImageData(imageData);
+            
+            // Limpa feedback
+            setFeedbackVisible(false);
+            setFeedbackMessage('');
+            
+            // Libera câmera
+            if (cameraStream) {
+              console.log('[CaptureScreen] Stopping camera stream for registration failure');
+              cameraService.stopStream(cameraStream);
+              setCameraStream(null);
+            }
+            
+            setShowFailureScreen(true);
+          } else {
+            // Para tentativas ilimitadas, mostrar apenas feedback
+            setFeedbackType('error');
+            setFeedbackMessage(registrationResult.error || 'Falha ao cadastrar. Por favor, tente novamente.');
+            setFeedbackVisible(true);
+          }
+          
           setIsRegistering(false);
           setIsCapturing(false);
           return;
@@ -251,38 +327,102 @@ export default function Home() {
         });
         
         setIsLocked(true);
-        setFeedbackType('error');
-        setFeedbackMessage(response.error || 'Número máximo de tentativas excedido. Por favor, entre em contato com o suporte.');
         setAttemptsRemaining(0);
-        setFeedbackVisible(true);
+        setMinutesRemaining(response.minutesRemaining);
+        setFailureErrorMessage(response.error || 'Número máximo de tentativas excedido. Por favor, entre em contato com o suporte.');
+        setCapturedImageData(imageData);
+        
+        // Limpa feedback antes de mostrar tela de falha
+        setFeedbackVisible(false);
+        setFeedbackMessage('');
+        
+        // Libera recurso da câmera antes de mostrar tela de falha
+        if (cameraStream) {
+          console.log('[CaptureScreen] Stopping camera stream for max attempts exceeded');
+          cameraService.stopStream(cameraStream);
+          setCameraStream(null);
+        }
+        
+        setShowFailureScreen(true);
         
         // Envia mensagem de falha para janela pai se incorporado
         iframeMessenger.sendCompletionStatus(false);
-      } else if (response.errorCode === 'LIVENESS_CHECK_ERROR') {
-        // Manipula detecção de fraude
-        console.log('Spoff');
-        console.warn('[CaptureScreen] Spoof attempt detected:', {
+      } else if (response.errorCode === 'LIVENESS_CHECK_ERROR' || 
+                 response.errorCode === 'FACE_BOUNDARY_ERROR' || 
+                 response.errorCode === 'MULTIPLE_FACE_ERROR' ||
+                 response.errorCode === 'FACE_NOT_FOUND') {
+        // Manipula erros da Face API - Direciona para tela de erro
+        if (response.errorCode === 'LIVENESS_CHECK_ERROR') {
+          console.log('Spoof');
+        }
+        console.warn('[CaptureScreen] Face API error detected:', {
           userId,
           error: response.error,
           errorCode: response.errorCode,
+          attemptsRemaining: response.data?.attemptsRemaining,
+          minutesRemaining: response.minutesRemaining,
           timestamp: new Date().toISOString()
         });
         
-        setFeedbackType('error');
-        setFeedbackMessage(response.error || 'Tentativa de fraude! Certifique-se de usar um rosto real!');
-        setFeedbackVisible(true);
+        // Lê attemptsRemaining do response.data e minutesRemaining do response
+        const attempts = response.data?.attemptsRemaining ?? 99;
+        setAttemptsRemaining(attempts);
+        setMinutesRemaining(response.minutesRemaining);
+        setFailureErrorMessage(response.error || 'Erro ao processar imagem.');
+        setCapturedImageData(imageData);
+        
+        // Se usuário ficou bloqueado, marca como locked
+        if (attempts === 0) {
+          setIsLocked(true);
+        }
+        
+        // Limpa feedback antes de mostrar tela de falha
+        setFeedbackVisible(false);
+        setFeedbackMessage('');
+        
+        // Libera recurso da câmera antes de mostrar tela de falha
+        if (cameraStream) {
+          console.log('[CaptureScreen] Stopping camera stream for face api error');
+          cameraService.stopStream(cameraStream);
+          setCameraStream(null);
+        }
+        
+        setShowFailureScreen(true);
       } else if (response.error && response.error.toLowerCase().includes('spoof')) {
-        // Manipula detecção de fraude (verificação de fallback)
-        console.log('Spoff');
+        // Manipula detecção de fraude (verificação de fallback) - Direciona para tela de erro
+        console.log('Spoof');
         console.warn('[CaptureScreen] Spoof attempt detected (via message):', {
           userId,
           error: response.error,
+          attemptsRemaining: response.data?.attemptsRemaining,
+          minutesRemaining: response.minutesRemaining,
           timestamp: new Date().toISOString()
         });
         
-        setFeedbackType('error');
-        setFeedbackMessage(response.error);
-        setFeedbackVisible(true);
+        // Lê attemptsRemaining do response.data e minutesRemaining do response
+        const attempts = response.data?.attemptsRemaining ?? 99;
+        setAttemptsRemaining(attempts);
+        setMinutesRemaining(response.minutesRemaining);
+        setFailureErrorMessage(response.error);
+        setCapturedImageData(imageData);
+        
+        // Se usuário ficou bloqueado, marca como locked
+        if (attempts === 0) {
+          setIsLocked(true);
+        }
+        
+        // Limpa feedback antes de mostrar tela de falha
+        setFeedbackVisible(false);
+        setFeedbackMessage('');
+        
+        // Libera recurso da câmera antes de mostrar tela de falha
+        if (cameraStream) {
+          console.log('[CaptureScreen] Stopping camera stream for spoof detection');
+          cameraService.stopStream(cameraStream);
+          setCameraStream(null);
+        }
+        
+        setShowFailureScreen(true);
       } else if (response.errorCode === 'INVALID_REQUEST') {
         // Requisito 4.4: Manipular erros de validação
         console.error('[CaptureScreen] Invalid request:', {
@@ -313,10 +453,32 @@ export default function Home() {
           timestamp: new Date().toISOString()
         });
         
-        setFeedbackType('error');
-        setFeedbackMessage(response.error || 'Rosto não reconhecido. Por favor, posicione seu rosto dentro da guia e tente novamente.');
-        setAttemptsRemaining(response.data?.attemptsRemaining);
-        setFeedbackVisible(true);
+        const attempts = response.data?.attemptsRemaining ?? 99;
+        setAttemptsRemaining(attempts);
+        
+        // Se tentativas limitadas (não 99 e não ilimitado), mostrar tela de falha
+        if (attempts !== 99 && attempts >= 0) {
+          setFailureErrorMessage(response.error || 'Rosto não reconhecido. Por favor, posicione seu rosto dentro da guia e tente novamente.');
+          setCapturedImageData(imageData);
+          
+          // Limpa feedback antes de mostrar tela de falha
+          setFeedbackVisible(false);
+          setFeedbackMessage('');
+          
+          // Libera recurso da câmera antes de mostrar tela de falha
+          if (cameraStream) {
+            console.log('[CaptureScreen] Stopping camera stream for failure screen');
+            cameraService.stopStream(cameraStream);
+            setCameraStream(null);
+          }
+          
+          setShowFailureScreen(true);
+        } else {
+          // Para tentativas ilimitadas, mostrar apenas feedback
+          setFeedbackType('error');
+          setFeedbackMessage(response.error || 'Rosto não reconhecido. Por favor, posicione seu rosto dentro da guia e tente novamente.');
+          setFeedbackVisible(true);
+        }
       }
     } catch (error) {
       // Manipula erros inesperados
@@ -343,9 +505,43 @@ export default function Home() {
     setFeedbackVisible(false);
   };
   
+  // Manipula retry da tela de falha
+  const handleFailureRetry = () => {
+    console.log('[CaptureScreen] Retrying from failure screen');
+    
+    // Limpa estado da tela de falha
+    setShowFailureScreen(false);
+    setFailureErrorMessage('');
+    setCapturedImageData(undefined);
+    setMinutesRemaining(undefined);
+    
+    // Limpa estados de captura e feedback
+    setIsCapturing(false);
+    setIsLocked(false);
+    setFeedbackVisible(false);
+    setFeedbackMessage('');
+    setFeedbackType('loading');
+    
+    // Câmera será reiniciada automaticamente pelo CameraFeed quando o componente for remontado
+  };
+  
   // Mostra tela de sucesso se reconhecimento foi bem-sucedido
   if (recognitionSuccess) {
-    return <SuccessScreen userId={userId} isRegistration={wasRegistration} />;
+    return <SuccessScreen userName={userName} isRegistration={wasRegistration} />;
+  }
+  
+  // Mostra tela de falha se aplicável
+  if (showFailureScreen && attemptsRemaining !== undefined) {
+    return (
+      <FailureScreen
+        userName={userName}
+        errorMessage={failureErrorMessage}
+        attemptsRemaining={attemptsRemaining}
+        capturedImage={capturedImageData}
+        minutesRemaining={minutesRemaining}
+        onRetry={handleFailureRetry}
+      />
+    );
   }
   
   return (
@@ -373,7 +569,7 @@ export default function Home() {
             userId={userId}
           />
           
-          {/* User ID Display */}
+          {/* User Name Display */}
           <div className="absolute top-4 left-4 z-20 max-w-[50vw]">
             <p 
               className="text-white font-bold break-words"
@@ -382,7 +578,7 @@ export default function Home() {
                 fontSize: 'clamp(1rem, 4vw, 2rem)'
               }}
             >
-              {userId}
+              {formatNameForDisplay(userName, isMobile)}
             </p>
           </div>
           

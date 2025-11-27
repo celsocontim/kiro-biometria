@@ -38,17 +38,30 @@ export default function CaptureButton({
         className={`
           px-8 py-4 md:px-12 md:py-5 lg:px-16 lg:py-6
           rounded-full
-          bg-green-700 text-white
+          text-white
           font-semibold text-lg md:text-xl lg:text-2xl
           shadow-lg
           transition-all duration-200
           ${disabled || isLoading 
             ? 'opacity-50 cursor-not-allowed' 
-            : 'hover:bg-green-800 active:scale-95 cursor-pointer'
+            : 'active:scale-95 cursor-pointer'
           }
           ${isLoading ? 'animate-pulse' : ''}
           min-w-[160px] md:min-w-[200px] lg:min-w-[240px]
         `}
+        style={{
+          backgroundColor: disabled || isLoading ? '#00995D' : '#00995D'
+        }}
+        onMouseEnter={(e) => {
+          if (!disabled && !isLoading) {
+            e.currentTarget.style.backgroundColor = '#005C38';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!disabled && !isLoading) {
+            e.currentTarget.style.backgroundColor = '#00995D';
+          }
+        }}
         data-testid="capture-button"
         aria-label={isLoading ? 'Capturando foto...' : 'Capturar foto'}
       >

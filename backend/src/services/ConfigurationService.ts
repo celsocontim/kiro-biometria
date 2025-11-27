@@ -170,9 +170,11 @@ export class ConfigurationService implements IConfigurationService {
     console.log('[Config] Final configuration loaded:', {
       maxFailureAttempts: config.maxFailureAttempts,
       failureResetOnSuccess: config.failureResetOnSuccess,
+      failureRecordTTL: parseInt(process.env.FAILURE_RECORD_TTL || '2', 10),
       captureTimeout: config.captureTimeout,
       recognitionThreshold: config.recognitionThreshold,
       useMock: config.useMock,
+      debugLogging: process.env.DEBUG_LOGGING === 'true',
       hasRecognitionApiUrl: !!config.recognitionApiUrl,
       hasRecognitionApiKey: !!config.recognitionApiKey,
       hasFaceApiUrl: !!config.faceApiUrl,
@@ -235,14 +237,37 @@ export class ConfigurationService implements IConfigurationService {
    */
   async reloadConfiguration(): Promise<void> {
     const oldConfig = { ...this.config };
+    const oldDebugLogging = process.env.DEBUG_LOGGING;
+    
+    // Reload .env file
+    try {
+      const dotenv = require('dotenv');
+      const envPath = path.join(process.cwd(), '.env');
+      if (fs.existsSync(envPath)) {
+        dotenv.config({ path: envPath, override: true });
+        console.log('[Config] Reloaded .env file');
+      }
+    } catch (error) {
+      console.warn('[Config] Could not reload .env file:', error);
+    }
+    
     this.config = this.loadConfigurationSync();
     
     // Log if configuration changed
-    if (JSON.stringify(oldConfig) !== JSON.stringify(this.config)) {
-      console.log('Configuration reloaded:', {
-        old: oldConfig,
-        new: this.config
+    const configChanged = JSON.stringify(oldConfig) !== JSON.stringify(this.config);
+    const debugLoggingChanged = oldDebugLogging !== process.env.DEBUG_LOGGING;
+    
+    if (configChanged || debugLoggingChanged) {
+      console.log('\n🔄 Configuration reloaded:', {
+        configChanged,
+        debugLoggingChanged,
+        debugLogging: process.env.DEBUG_LOGGING === 'true',
+        timestamp: new Date().toISOString()
       });
+      
+      if (debugLoggingChanged) {
+        console.log(`   DEBUG_LOGGING: ${oldDebugLogging} → ${process.env.DEBUG_LOGGING}`);
+      }
     }
   }
 

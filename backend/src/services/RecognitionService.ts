@@ -86,8 +86,9 @@ export class RecognitionService implements IRecognitionService {
       
       return result;
     } catch (error) {
-      // Re-throw spoof detection errors as-is
-      if (error instanceof Error && (error as any).code === 'SPOOF_DETECTED') {
+      // Re-throw Face API errors as-is (includes spoof, boundary, multiple faces, etc.)
+      if (error instanceof Error && (error as any).code === 'FACE_API_ERROR') {
+        errorLog('[RecognitionService] Re-throwing Face API error');
         throw error;
       }
 
@@ -96,6 +97,7 @@ export class RecognitionService implements IRecognitionService {
         userId,
         error: error instanceof Error ? error.message : 'Unknown error',
         errorName: error instanceof Error ? error.name : 'Unknown',
+        errorCode: error instanceof Error ? (error as any).code : 'Unknown',
         timestamp: new Date().toISOString()
       });
       
@@ -217,12 +219,31 @@ export class RecognitionService implements IRecognitionService {
         timestamp: new Date().toISOString()
       });
 
-      // Check for spoof detection (error_code 106)
-      if (responseData.error_code === 106 || responseData.error_code === '106' || Number(responseData.error_code) === 106) {
-        debugLog(`[RecognitionService] Spoof detected for user: ${userId}`, '');
-        const spoofError = new Error('Spoof attempt detected');
-        (spoofError as any).code = 'SPOOF_DETECTED';
-        throw spoofError;
+      // Check for Face API errors
+      if (responseData.error_code !== 0) {
+        const errorCode = responseData.error_code;
+        const errorMessage = responseData.error_message || 'Unknown error';
+        
+        errorLog(`[RecognitionService] Face API error for user: ${userId}`, {
+          errorCode,
+          errorMessage,
+          errorCodeType: typeof errorCode,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Create error with Face API details
+        const apiError = new Error(errorMessage);
+        (apiError as any).code = 'FACE_API_ERROR';
+        (apiError as any).faceApiErrorCode = errorCode;
+        (apiError as any).faceApiErrorMessage = errorMessage;
+        
+        errorLog('[RecognitionService] Throwing Face API error:', {
+          code: (apiError as any).code,
+          faceApiErrorCode: (apiError as any).faceApiErrorCode,
+          faceApiErrorMessage: (apiError as any).faceApiErrorMessage
+        });
+        
+        throw apiError;
       }
 
       // Check if extract response is successful
@@ -379,18 +400,20 @@ export class RecognitionService implements IRecognitionService {
         };
       }
     } catch (error) {
-      // Re-throw spoof detection errors
-      if (error instanceof Error && (error as any).code === 'SPOOF_DETECTED') {
+      // Re-throw Face API errors (includes spoof, boundary, multiple faces, etc.)
+      if (error instanceof Error && (error as any).code === 'FACE_API_ERROR') {
+        errorLog('[RecognitionService] Re-throwing Face API error from callFaceAPI');
         throw error;
       }
 
       errorLog('[RecognitionService] Face API call failed:', {
         userId,
         error: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: error instanceof Error ? (error as any).code : 'Unknown',
         timestamp: new Date().toISOString()
       });
 
-      // Return failure with 0 confidence for any API errors
+      // Return failure with 0 confidence for any other API errors
       return {
         recognized: false,
         confidence: 0,

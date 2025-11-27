@@ -121,6 +121,7 @@ npm run dev
 | `PORT` | 4000 | Porta do servidor backend |
 | `FRONTEND_URL` | http://localhost:3000 | URL do frontend para CORS |
 | `MAX_FAILURE_ATTEMPTS` | 0 | Máximo de tentativas falhadas antes do bloqueio (0 = ilimitado) |
+| `FAILURE_RECORD_TTL` | 2 | Tempo em minutos para expirar registros de falha |
 | `RECOGNITION_THRESHOLD` | 70 | Limiar de confiança (0-100) para reconhecimento |
 | `USE_MOCK` | false | Usar reconhecimento mock ao invés da API real |
 | `FACE_API_URL` | - | URL do endpoint da API de reconhecimento facial |

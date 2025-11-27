@@ -1,0 +1,519 @@
+openapi: 3.0.3
+info:
+  title: API de Captura de Reconhecimento Facial
+  description: |
+    API backend para aplicação de captura de reconhecimento facial com detecção de vivacidade em tempo real.
+    
+    ## Funcionalidades
+    - Verificação de cadastro de usuário
+    - Cadastro de novos usuários com dados biométricos faciais
+    - Identificação de usuários cadastrados
+    - Detecção de vivacidade (anti-fraude)
+    - Rastreamento de tentativas falhadas
+    
+    ## Fluxo de Autenticação
+    1. **Verificação**: Verificar se usuário está cadastrado (`POST /api/user`)
+    2. **Cadastro**: Se não cadastrado, cadastrar usuário (`POST /api/register`)
+    3. **Identificação**: Se cadastrado, identificar usuário (`POST /api/capture`)
+    
+  version: 1.0.0
+  contact:
+    name: Suporte da API
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:4000
+    description: Servidor de desenvolvimento local
+  - url: https://api.exemplo.com
+    description: Servidor de produção
+
+tags:
+  - name: Health
+    description: Endpoints de verificação de saúde
+  - name: User
+    description: Operações de gerenciamento de usuário
+  - name: Recognition
+    description: Operações de reconhecimento facial
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Verificação de saúde
+      description: Verifica se o servidor está funcionando corretamente
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Servidor está saudável
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: '2025-11-27T10:30:00.000Z'
+
+  /api/config:
+    get:
+      tags:
+        - Health
+      summary: Obter configuração atual
+      description: Retorna a configuração atual do servidor (apenas para debug)
+      operationId: getConfig
+      responses:
+        '200':
+          description: Configuração atual
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  maxFailureAttempts:
+                    type: integer
+                    example: 0
+                    description: Máximo de tentativas falhadas (0 = ilimitado)
+                  failureResetOnSuccess:
+                    type: boolean
+                    example: true
+                  captureTimeout:
+                    type: integer
+                    example: 30000
+                    description: Timeout de captura em milissegundos
+                  recognitionApiUrl:
+                    type: string
+                    example: '[CONFIGURED]'
+                    description: Status da URL da API de reconhecimento
+        '500':
+          description: Erro ao recuperar configuração
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/user:
+    post:
+      tags:
+        - User
+      summary: Verificar cadastro de usuário
+      description: Verifica se um usuário está cadastrado no sistema de reconhecimento facial
+      operationId: checkUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+              properties:
+                user_id:
+                  type: string
+                  description: Identificador único do usuário
+                  example: '347313'
+                  minLength: 1
+                  maxLength: 255
+      responses:
+        '200':
+          description: Verificação bem-sucedida
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - registered
+                  - timestamp
+                properties:
+                  registered:
+                    type: boolean
+                    description: Se o usuário está cadastrado
+                    example: true
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: '2025-11-27T10:30:00.000Z'
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                registered: false
+                timestamp: '2025-11-27T10:30:00.000Z'
+                error: 'ID de usuário inválido ou ausente'
+                errorCode: 'INVALID_REQUEST'
+        '500':
+          description: Erro no servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                registered: false
+                timestamp: '2025-11-27T10:30:00.000Z'
+                error: 'Falha ao verificar cadastro do usuário'
+                errorCode: 'SERVER_ERROR'
+
+  /api/register:
+    post:
+      tags:
+        - User
+      summary: Cadastrar novo usuário
+      description: |
+        Cadastra um novo usuário com dados biométricos faciais.
+        
+        **Processo:**
+        1. Cria usuário na API de reconhecimento facial
+        2. Adiciona credencial facial (template) com detecção de vivacidade
+        3. Se fraude detectada, usuário é deletado automaticamente
+        
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - user_id
+                - imageData
+              properties:
+                user_id:
+                  type: string
+                  description: Identificador único do usuário
+                  example: '347313'
+                  minLength: 1
+                  maxLength: 255
+                imageData:
+                  type: string
+                  description: Imagem codificada em base64 com prefixo data URI
+                  example: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...'
+                  pattern: '^data:image/(jpeg|png);base64,'
+      responses:
+        '200':
+          description: Cadastro processado (sucesso ou falha)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/RegisterSuccessResponse'
+                  - $ref: '#/components/schemas/RegisterErrorResponse'
+              examples:
+                success:
+                  summary: Cadastro bem-sucedido
+                  value:
+                    success: true
+                    timestamp: '2025-11-27T10:30:00.000Z'
+                spoofDetected:
+                  summary: Fraude detectada
+                  value:
+                    success: false
+                    timestamp: '2025-11-27T10:30:00.000Z'
+                    error: 'Tentativa de fraude! Certifique-se de usar um rosto real!'
+                    errorCode: 'LIVENESS_CHECK_ERROR'
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterErrorResponse'
+              examples:
+                invalidUserId:
+                  summary: ID de usuário inválido
+                  value:
+                    success: false
+                    timestamp: '2025-11-27T10:30:00.000Z'
+                    error: 'ID de usuário inválido ou ausente'
+                    errorCode: 'INVALID_REQUEST'
+                invalidImage:
+                  summary: Dados de imagem inválidos
+                  value:
+                    success: false
+                    timestamp: '2025-11-27T10:30:00.000Z'
+                    error: 'Dados de imagem inválidos ou ausentes'
+                    errorCode: 'INVALID_REQUEST'
+        '500':
+          description: Erro no servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterErrorResponse'
+              example:
+                success: false
+                timestamp: '2025-11-27T10:30:00.000Z'
+                error: 'Falha ao cadastrar usuário'
+                errorCode: 'SERVER_ERROR'
+
+  /api/capture:
+    post:
+      tags:
+        - Recognition
+      summary: Processar identificação facial
+      description: |
+        Processa identificação de reconhecimento facial para usuários cadastrados.
+        
+        **Processo de Verificação em Duas Etapas:**
+        1. **Detecção de Vivacidade (Extract)** - Detecta tentativas de fraude
+        2. **Identificação de Usuário (Identify)** - Compara rosto com usuário cadastrado
+        
+        **Rastreamento de Tentativas:**
+        - Se `MAX_FAILURE_ATTEMPTS > 0`: Rastreia falhas e bloqueia após limite
+        - Se `MAX_FAILURE_ATTEMPTS = 0`: Tentativas ilimitadas
+        
+      operationId: captureRecognition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - imageData
+              properties:
+                userId:
+                  type: string
+                  description: Identificador único do usuário
+                  example: '347313'
+                  minLength: 1
+                  maxLength: 255
+                imageData:
+                  type: string
+                  description: Imagem codificada em base64 com prefixo data URI
+                  example: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...'
+                  pattern: '^data:image/(jpeg|png);base64,'
+                timestamp:
+                  type: integer
+                  description: Timestamp Unix da captura (opcional)
+                  example: 1732704600000
+      responses:
+        '200':
+          description: Reconhecimento processado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaptureSuccessResponse'
+              examples:
+                recognized:
+                  summary: Rosto reconhecido
+                  value:
+                    success: true
+                    data:
+                      recognized: true
+                      confidence: 95
+                      userId: '347313'
+                      timestamp: '2025-11-27T10:30:00.000Z'
+                      attemptsRemaining: 99
+                notRecognized:
+                  summary: Rosto não reconhecido
+                  value:
+                    success: true
+                    data:
+                      recognized: false
+                      confidence: 45
+                      userId: '347313'
+                      timestamp: '2025-11-27T10:30:00.000Z'
+                      attemptsRemaining: 4
+        '400':
+          description: Requisição inválida ou fraude detectada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaptureErrorResponse'
+              examples:
+                invalidUserId:
+                  summary: ID de usuário inválido
+                  value:
+                    success: false
+                    error: 'ID de usuário inválido ou ausente. Deve ser uma string não vazia com no máximo 255 caracteres.'
+                    errorCode: 'INVALID_REQUEST'
+                invalidImage:
+                  summary: Dados de imagem inválidos
+                  value:
+                    success: false
+                    error: 'Dados de imagem inválidos ou ausentes. Deve ser uma imagem codificada em base64 com prefixo URI de dados.'
+                    errorCode: 'INVALID_REQUEST'
+                spoofDetected:
+                  summary: Fraude detectada
+                  value:
+                    success: false
+                    error: 'Tentativa de fraude! Certifique-se de usar um rosto real!'
+                    errorCode: 'LIVENESS_CHECK_ERROR'
+        '403':
+          description: Tentativas máximas excedidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaptureErrorResponse'
+              example:
+                success: false
+                error: 'Número máximo de tentativas de reconhecimento excedido. Por favor, entre em contato com o suporte para obter assistência.'
+                errorCode: 'MAX_ATTEMPTS_EXCEEDED'
+        '500':
+          description: Erro no servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaptureErrorResponse'
+              example:
+                success: false
+                error: 'Ocorreu um erro inesperado ao processar sua solicitação. Por favor, tente novamente.'
+                errorCode: 'SERVER_ERROR'
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Mensagem de erro amigável ao usuário
+        errorCode:
+          type: string
+          description: Código de erro para tratamento programático
+          enum:
+            - INVALID_REQUEST
+            - SERVER_ERROR
+            - MAX_ATTEMPTS_EXCEEDED
+            - LIVENESS_CHECK_ERROR
+
+    RegisterSuccessResponse:
+      type: object
+      required:
+        - success
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          example: true
+        timestamp:
+          type: string
+          format: date-time
+          example: '2025-11-27T10:30:00.000Z'
+
+    RegisterErrorResponse:
+      type: object
+      required:
+        - success
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          example: false
+        timestamp:
+          type: string
+          format: date-time
+          example: '2025-11-27T10:30:00.000Z'
+        error:
+          type: string
+          description: Mensagem de erro amigável ao usuário
+          example: 'Tentativa de fraude! Certifique-se de usar um rosto real!'
+        errorCode:
+          type: string
+          description: Código de erro para tratamento programático
+          enum:
+            - INVALID_REQUEST
+            - SERVER_ERROR
+            - LIVENESS_CHECK_ERROR
+          example: 'LIVENESS_CHECK_ERROR'
+
+    CaptureSuccessResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - recognized
+            - confidence
+            - userId
+            - timestamp
+          properties:
+            recognized:
+              type: boolean
+              description: Se o rosto foi reconhecido
+              example: true
+            confidence:
+              type: number
+              format: float
+              description: Pontuação de confiança (0-100)
+              minimum: 0
+              maximum: 100
+              example: 95
+            userId:
+              type: string
+              description: ID do usuário reconhecido
+              example: '347313'
+            timestamp:
+              type: string
+              format: date-time
+              description: Timestamp do reconhecimento
+              example: '2025-11-27T10:30:00.000Z'
+            attemptsRemaining:
+              type: integer
+              description: Tentativas restantes (99 se ilimitado)
+              minimum: 0
+              example: 99
+            minutesRemaining:
+              type: integer
+              description: Minutos restantes até expiração do bloqueio (apenas quando bloqueado)
+              minimum: 0
+              example: 2
+
+    CaptureErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - errorCode
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Mensagem de erro amigável ao usuário
+          example: 'Tentativa de fraude! Certifique-se de usar um rosto real!'
+        errorCode:
+          type: string
+          description: Código de erro para tratamento programático
+          enum:
+            - INVALID_REQUEST
+            - SERVER_ERROR
+            - MAX_ATTEMPTS_EXCEEDED
+            - LIVENESS_CHECK_ERROR
+          example: 'LIVENESS_CHECK_ERROR'
+        minutesRemaining:
+          type: integer
+          description: Minutos restantes até expiração do bloqueio (apenas quando MAX_ATTEMPTS_EXCEEDED)
+          minimum: 0
+          example: 2
+        data:
+          type: object
+          description: Dados adicionais (apenas para alguns erros)
+          properties:
+            attemptsRemaining:
+              type: integer
+              description: Tentativas restantes
+              example: 3
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Chave de API para autenticação (se necessário no futuro)
+
+security: []

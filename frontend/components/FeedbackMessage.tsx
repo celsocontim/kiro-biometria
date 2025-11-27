@@ -62,7 +62,8 @@ export default function FeedbackMessage({
   if (type === 'loading') {
     return (
       <div
-        className="fixed top-0 left-0 right-0 z-40 flex items-center justify-center p-4 bg-blue-500 text-white shadow-lg"
+        className="fixed top-0 left-0 right-0 z-40 flex items-center justify-center p-4 text-white shadow-lg"
+        style={{ backgroundColor: '#00995D' }}
         data-testid="feedback-loading"
         role="status"
         aria-live="polite"
@@ -82,7 +83,8 @@ export default function FeedbackMessage({
   if (type === 'success') {
     return (
       <div
-        className="fixed top-0 left-0 right-0 z-40 flex items-center justify-center p-4 bg-green-500 text-white shadow-lg animate-slide-down"
+        className="fixed top-0 left-0 right-0 z-40 flex items-center justify-center p-4 text-white shadow-lg animate-slide-down"
+        style={{ backgroundColor: '#00995D' }}
         data-testid="feedback-success"
         role="alert"
         aria-live="polite"
@@ -110,6 +112,7 @@ export default function FeedbackMessage({
 
   // Requisito 6.3: Exibir mensagem de erro com detalhes
   // Requisito 6.5: Permitir dispensa manual de mensagens de erro
+  // Nota: Tentativas restantes não são mais exibidas aqui, pois são tratadas pela FailureScreen
   if (type === 'error') {
     return (
       <div
@@ -135,14 +138,6 @@ export default function FeedbackMessage({
           </svg>
           <div className="flex-grow">
             <p className="text-base md:text-lg font-medium">{message}</p>
-            {attemptsRemaining !== undefined && attemptsRemaining >= 0 && attemptsRemaining !== 99 && (
-              <p 
-                className="text-sm mt-1 opacity-90"
-                data-testid="attempts-remaining"
-              >
-                Tentativas restantes: {attemptsRemaining}
-              </p>
-            )}
           </div>
           {onDismiss && (
             <button

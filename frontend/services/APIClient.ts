@@ -13,6 +13,14 @@
 
 import { CaptureRequest, CaptureResponse } from '../types/api.types';
 
+export interface RegisterResponse {
+  success: boolean;
+  error?: string;
+  errorCode?: string;
+  attemptsRemaining?: number;
+  minutesRemaining?: number;
+}
+
 export class APIClient {
   private readonly backendUrl: string;
   private readonly timeout: number;
@@ -251,10 +259,10 @@ export class APIClient {
    * 
    * @param userId - User identifier
    * @param imageData - Base64 encoded image data
-   * @returns Promise resolving to boolean indicating if registration was successful
+   * @returns Promise resolving to RegisterResponse
    * @throws Error if request fails
    */
-  async registerUser(userId: string, imageData: string): Promise<{ success: boolean; error?: string }> {
+  async registerUser(userId: string, imageData: string): Promise<RegisterResponse> {
     try {
       const response = await fetch(`${this.backendUrl}/api/register`, {
         method: 'POST',
@@ -267,12 +275,15 @@ export class APIClient {
         }),
       });
 
-      const data = await response.json() as { success: boolean; error?: string };
+      const data = await response.json() as RegisterResponse;
 
       console.log('[APIClient] User registration response:', {
         userId,
         success: data.success,
         error: data.error,
+        errorCode: data.errorCode,
+        attemptsRemaining: data.attemptsRemaining,
+        minutesRemaining: data.minutesRemaining,
         timestamp: new Date().toISOString()
       });
 
@@ -286,7 +297,8 @@ export class APIClient {
       
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Falha ao cadastrar usuário'
+        error: error instanceof Error ? error.message : 'Falha ao cadastrar usuário',
+        errorCode: 'SERVER_ERROR'
       };
     }
   }

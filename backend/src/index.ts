@@ -50,6 +50,52 @@ app.use(cors({
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
+// Request logging middleware
+app.use((req: Request, res: Response, next: any) => {
+  const startTime = Date.now();
+  
+  // Log request details if DEBUG_LOGGING is enabled
+  if (process.env.DEBUG_LOGGING === 'true') {
+    console.log('\n========== INCOMING REQUEST ==========');
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
+    if (req.body && Object.keys(req.body).length > 0) {
+      // Don't log full image data, just metadata
+      const bodyLog = { ...req.body };
+      if (bodyLog.imageData) {
+        bodyLog.imageData = `[IMAGE_DATA: ${bodyLog.imageData.substring(0, 50)}... (${bodyLog.imageData.length} chars)]`;
+      }
+      console.log('Body:', JSON.stringify(bodyLog, null, 2));
+    }
+    console.log('Query:', JSON.stringify(req.query, null, 2));
+    console.log('======================================\n');
+  }
+  
+  // Capture response
+  const originalSend = res.send;
+  res.send = function(data: any) {
+    const duration = Date.now() - startTime;
+    
+    if (process.env.DEBUG_LOGGING === 'true') {
+      console.log('\n========== OUTGOING RESPONSE ==========');
+      console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+      console.log(`Status: ${res.statusCode}`);
+      console.log(`Duration: ${duration}ms`);
+      try {
+        const responseData = typeof data === 'string' ? JSON.parse(data) : data;
+        console.log('Response:', JSON.stringify(responseData, null, 2));
+      } catch (e) {
+        console.log('Response:', data);
+      }
+      console.log('=======================================\n');
+    }
+    
+    return originalSend.call(this, data);
+  };
+  
+  next();
+});
+
 // Error handler for body parser
 app.use((err: any, req: Request, res: Response, next: any) => {
   if (err instanceof SyntaxError && 'body' in err) {
@@ -117,7 +163,7 @@ app.post('/api/user', async (req: Request, res: Response) => {
 // User registration endpoint
 app.post('/api/register', async (req: Request, res: Response) => {
   const config = await configService.getConfiguration();
-  await handleRegister(req, res, config.faceApiUrl, config.faceApiKey);
+  await handleRegister(req, res, config.faceApiUrl, config.faceApiKey, failureTrackingService, configService);
 });
 
 // 404 handler for unknown routes
@@ -175,10 +221,42 @@ process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
-  console.log(`[server] Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`[server] CORS enabled for: ${allowedOrigins.join(', ')}`);
+app.listen(port, async () => {
+  console.log('\n╔════════════════════════════════════════════════════════════╗');
+  console.log('║          SERVIDOR DE RECONHECIMENTO FACIAL                ║');
+  console.log('╚════════════════════════════════════════════════════════════╝\n');
+  console.log(`⚡️ Servidor rodando em: http://localhost:${port}`);
+  console.log(`📚 Documentação API: http://localhost:${port}/api-docs (se configurado)`);
+  console.log(`\n🔧 CONFIGURAÇÕES:`);
+  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`   DEBUG_LOGGING: ${process.env.DEBUG_LOGGING || 'false'}`);
+  console.log(`   USE_MOCK: ${process.env.USE_MOCK || 'false'}`);
+  console.log(`   MAX_FAILURE_ATTEMPTS: ${process.env.MAX_FAILURE_ATTEMPTS || '0'}`);
+  console.log(`   FAILURE_RECORD_TTL: ${process.env.FAILURE_RECORD_TTL || '2'} minutos`);
+  console.log(`   RECOGNITION_THRESHOLD: ${process.env.RECOGNITION_THRESHOLD || '70'}`);
+  console.log(`\n🌐 CORS habilitado para:`);
+  allowedOrigins.forEach(origin => console.log(`   - ${origin}`));
+  
+  // Load and display current config
+  try {
+    const config = await configService.getConfiguration();
+    console.log(`\n📋 CONFIGURAÇÃO CARREGADA:`);
+    console.log(`   Max Failure Attempts: ${config.maxFailureAttempts}`);
+    console.log(`   Recognition Threshold: ${config.recognitionThreshold}`);
+    console.log(`   Use Mock: ${config.useMock}`);
+    console.log(`   Face API URL: ${config.faceApiUrl ? '✓ Configurado' : '✗ Não configurado'}`);
+    console.log(`   Face API Key: ${config.faceApiKey ? '✓ Configurado' : '✗ Não configurado'}`);
+  } catch (error) {
+    console.log(`\n⚠️  Erro ao carregar configuração inicial`);
+  }
+  
+  console.log('\n════════════════════════════════════════════════════════════\n');
+  
+  if (process.env.DEBUG_LOGGING === 'true') {
+    console.log('🔍 DEBUG_LOGGING ATIVADO - Logs detalhados serão exibidos\n');
+  } else {
+    console.log('ℹ️  Para logs detalhados, defina DEBUG_LOGGING=true no .env\n');
+  }
 });
 
 export default app;

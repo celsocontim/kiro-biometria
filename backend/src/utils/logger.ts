@@ -2,14 +2,24 @@
  * Logging utility for conditional debug logging
  */
 
-const DEBUG_LOGGING = process.env.DEBUG_LOGGING === 'true';
+/**
+ * Check if debug logging is enabled (checked dynamically)
+ */
+function isDebugEnabled(): boolean {
+  return process.env.DEBUG_LOGGING === 'true';
+}
 
 /**
  * Log debug information only if DEBUG_LOGGING is enabled
  */
 export function debugLog(message: string, data?: any): void {
-  if (DEBUG_LOGGING) {
-    console.log(message, data || '');
+  if (isDebugEnabled()) {
+    const timestamp = new Date().toISOString();
+    if (data) {
+      console.log(`[${timestamp}] ${message}`, JSON.stringify(data, null, 2));
+    } else {
+      console.log(`[${timestamp}] ${message}`);
+    }
   }
 }
 
@@ -17,19 +27,26 @@ export function debugLog(message: string, data?: any): void {
  * Always log important information (errors, warnings, security events)
  */
 export function infoLog(message: string): void {
-  console.log(message);
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${message}`);
 }
 
 /**
  * Always log warnings
  */
 export function warnLog(message: string): void {
-  console.warn(message);
+  const timestamp = new Date().toISOString();
+  console.warn(`[${timestamp}] ${message}`);
 }
 
 /**
  * Always log errors
  */
 export function errorLog(message: string, data?: any): void {
-  console.error(message, data || '');
+  const timestamp = new Date().toISOString();
+  if (data) {
+    console.error(`[${timestamp}] ${message}`, JSON.stringify(data, null, 2));
+  } else {
+    console.error(`[${timestamp}] ${message}`);
+  }
 }

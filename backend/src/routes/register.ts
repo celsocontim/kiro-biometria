@@ -17,6 +17,8 @@ interface RegisterResponse {
   timestamp: string;
   error?: string;
   errorCode?: string;
+  attemptsRemaining?: number;
+  minutesRemaining?: number;
 }
 
 /**
@@ -27,7 +29,9 @@ export async function handleRegister(
   req: Request,
   res: Response,
   faceApiUrl: string,
-  faceApiKey: string
+  faceApiKey: string,
+  failureTrackingService: any,
+  configService: any
 ): Promise<void> {
   try {
     const { user_id, imageData } = req.body as RegisterRequest;
@@ -182,15 +186,23 @@ export async function handleRegister(
       timestamp: new Date().toISOString()
     });
 
-    // Verifica detecção de fraude (error_code 106)
-    if (addCredentialData.error_code === 106 || addCredentialData.error_code === '106' || Number(addCredentialData.error_code) === 106) {
-      debugLog('[Register] Spoof detected during registration, deleting user:', {
+    // Verifica se houve erro ao adicionar credencial
+    if (!addCredentialResponse.ok || addCredentialData.error_code !== 0) {
+      const credentialErrorCode = addCredentialData.error_code;
+      const credentialErrorMessage = addCredentialData.error_message;
+      const isSpoof = credentialErrorCode === 106 || credentialErrorCode === '106' || Number(credentialErrorCode) === 106;
+      
+      errorLog('[Register] Credential error during registration, deleting user:', {
         userId: user_id,
         internalUserId,
+        errorCode: credentialErrorCode,
+        errorCodeType: typeof credentialErrorCode,
+        errorMessage: credentialErrorMessage,
+        isSpoof,
         timestamp: new Date().toISOString()
       });
 
-      // Deleta o usuário criado
+      // Deleta o usuário criado (para qualquer erro de credencial)
       const deleteUserUrl = `${faceApiUrl}/api/v1/users/${internalUserId}`;
       try {
         const deleteResponse = await fetch(deleteUserUrl, {
@@ -213,7 +225,7 @@ export async function handleRegister(
 
         // Verifica se deleção foi bem-sucedida
         if (!deleteResponse.ok || deleteData.error_code !== 0) {
-          errorLog('[Register] Failed to delete user after spoof detection:', {
+          errorLog('[Register] Failed to delete user after credential error:', {
             userId: user_id,
             internalUserId,
             status: deleteResponse.status,
@@ -232,21 +244,65 @@ export async function handleRegister(
           return;
         }
 
-        debugLog('[Register] User deleted successfully after spoof detection:', {
+        debugLog('[Register] User deleted successfully after credential error:', {
           userId: user_id,
           internalUserId,
           timestamp: new Date().toISOString()
         });
 
-        // Registra tentativa de fraude
-        infoLog(`Spoof attempted! User_id: ${user_id}`);
+        // Mapeia código de erro para tipo e mensagem específicos
+        let errorType: string;
+        let errorMessage: string;
+        
+        if (isSpoof) {
+          // Erro 106: Liveness/Spoof
+          infoLog(`Spoof attempted! User_id: ${user_id}`);
+          errorType = 'LIVENESS_CHECK_ERROR';
+          errorMessage = 'Tentativa de fraude! Certifique-se de usar um rosto real!';
+        } else if (credentialErrorCode === 109 || credentialErrorCode === '109' || Number(credentialErrorCode) === 109) {
+          // Erro 109: Face fora dos limites
+          errorLog('[Register] Mapping to FACE_BOUNDARY_ERROR');
+          errorType = 'FACE_BOUNDARY_ERROR';
+          errorMessage = 'Face não está posicionada adequadamente.';
+        } else if (credentialErrorCode === 108 || credentialErrorCode === '108' || Number(credentialErrorCode) === 108) {
+          // Erro 108: Múltiplas faces
+          errorLog('[Register] Mapping to MULTIPLE_FACE_ERROR');
+          errorType = 'MULTIPLE_FACE_ERROR';
+          errorMessage = 'Diversas faces encontradas. Garanta apenas uma face na imagem.';
+        } else if (credentialErrorCode === 107 || credentialErrorCode === '107' || Number(credentialErrorCode) === 107) {
+          // Erro 107: Face não detectada
+          errorLog('[Register] Mapping to FACE_NOT_FOUND');
+          errorType = 'FACE_NOT_FOUND';
+          errorMessage = 'Não foi encontrada face na imagem.';
+        } else {
+          // Outros erros
+          errorLog('[Register] Mapping to SERVER_ERROR for code:', credentialErrorCode);
+          errorType = 'SERVER_ERROR';
+          errorMessage = 'Falha ao cadastrar dados faciais. Por favor, tente novamente.';
+        }
+        
+        errorLog('[Register] Final error mapping:', {
+          errorType,
+          errorMessage,
+          credentialErrorCode
+        });
 
-        // Retorna erro de verificação de vivacidade para frontend
+        // Registra falha no rastreamento
+        await failureTrackingService.recordFailure(user_id);
+        const attemptsRemaining = await failureTrackingService.getRemainingAttempts(user_id);
+        
+        // Verifica se usuário ficou bloqueado após esta tentativa
+        const isNowLocked = await failureTrackingService.isUserLocked(user_id);
+        const minutesRemaining = isNowLocked ? await failureTrackingService.getMinutesUntilExpiry(user_id) : undefined;
+
+        // Retorna erro apropriado para frontend
         const response: RegisterResponse = {
           success: false,
           timestamp: new Date().toISOString(),
-          error: 'Tentativa de fraude! Certifique-se de usar um rosto real!',
-          errorCode: 'LIVENESS_CHECK_ERROR'
+          error: errorMessage,
+          errorCode: errorType,
+          attemptsRemaining,
+          minutesRemaining
         };
         res.status(200).json(response);
         return;
@@ -269,27 +325,6 @@ export async function handleRegister(
       }
     }
 
-    // Verifica se credencial foi adicionada com sucesso
-    if (!addCredentialResponse.ok || addCredentialData.error_code !== 0) {
-      errorLog('[Register] Failed to add credential:', {
-        userId: user_id,
-        internalUserId,
-        status: addCredentialResponse.status,
-        errorCode: addCredentialData.error_code,
-        errorMessage: addCredentialData.error_message,
-        timestamp: new Date().toISOString()
-      });
-
-      const response: RegisterResponse = {
-        success: false,
-        timestamp: new Date().toISOString(),
-        error: 'Falha ao cadastrar dados faciais',
-        errorCode: 'SERVER_ERROR'
-      };
-      res.status(500).json(response);
-      return;
-    }
-
     debugLog('[Register] User registration completed successfully:', {
       userId: user_id,
       internalUserId,
@@ -298,6 +333,13 @@ export async function handleRegister(
 
     // Registra sucesso simples
     infoLog(`user_id: ${user_id}, registration: true`);
+
+    // Reseta falhas em caso de sucesso
+    const config = await configService.getConfiguration();
+    if (config.failureResetOnSuccess) {
+      await failureTrackingService.resetFailures(user_id);
+      debugLog('[Register] Failure count reset for user:', { userId: user_id });
+    }
 
     // Retorna resposta de sucesso
     const response: RegisterResponse = {

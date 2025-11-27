@@ -40,11 +40,17 @@ export interface CaptureResponse {
     
     /** Number of attempts remaining before lockout */
     attemptsRemaining?: number;
+    
+    /** Minutes remaining until failure record expires (only when locked) */
+    minutesRemaining?: number;
   };
   
   /** Error message (present on failure) */
   error?: string;
   
   /** Error code for client handling */
-  errorCode?: 'MAX_ATTEMPTS_EXCEEDED' | 'INVALID_REQUEST' | 'SERVER_ERROR' | 'LIVENESS_CHECK_ERROR';
+  errorCode?: 'MAX_ATTEMPTS_EXCEEDED' | 'INVALID_REQUEST' | 'SERVER_ERROR' | 'LIVENESS_CHECK_ERROR' | 'FACE_BOUNDARY_ERROR' | 'MULTIPLE_FACE_ERROR' | 'FACE_NOT_FOUND';
+  
+  /** Minutes remaining until failure record expires (only when locked) */
+  minutesRemaining?: number;
 }
